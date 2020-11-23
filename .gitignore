@@ -2,4 +2,6 @@
 node_modules
 dist/*
 !dist/.keep
+envs/*
+!envs/.keep
 package-lock.json
