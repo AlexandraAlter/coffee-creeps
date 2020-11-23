@@ -1,0 +1,9 @@
+{
+  "name": "coffee-screeps",
+  "version": "0.0.1",
+  "author": "AlexandraAlter",
+  "dependencies": {
+    "grunt": "^1.3.0",
+    "grunt-screeps": "~1.4.0"
+  }
+}
