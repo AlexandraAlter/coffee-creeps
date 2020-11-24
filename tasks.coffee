@@ -5,11 +5,12 @@ class Task
   @variants = {}
 
   constructor: (@creep, opts) ->
+    @creep.task = @
     {} = opts
 
   toString: -> @constructor.name
 
-  step: ->
+  do: ->
   isDone: ->
 
 
@@ -20,7 +21,7 @@ class Task.Move extends Task
     super creep, opts
     { @target } = opts
 
-  step: ->
+  do: ->
     @creep.move @target
 
   isDone: ->

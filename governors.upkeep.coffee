@@ -1,7 +1,7 @@
 'use strict'
 
 _ = require 'lodash'
-Gov = require 'governors.base'
+Gov = require 'governors'
 Edict = require 'edicts'
 Role = require 'roles'
 logger = require 'logger'
@@ -32,7 +32,7 @@ class Harvester extends Role
 
 
 class UpkeepGov extends Gov
-  Gov.variants[@name] = @
+  @makeNewVariant()
 
   @HarvestEdict = HarvestEdict
   @StaticHarvestEdict = StaticHarvestEdict

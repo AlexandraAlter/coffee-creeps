@@ -7,7 +7,7 @@ rooms = require 'rooms'
 roles = require 'roles'
 tasks = require 'tasks'
 spawns = require 'spawns'
-governors = require 'governors'
+Gov = require 'governors.all'
 creeps = require 'creeps'
 logger = require 'logger'
 u = require 'utils'
@@ -26,8 +26,8 @@ tick = ->
     room.init()
 
     if u.onFreq u.freq.RARELY
-      governors.delIfRequired room
-      governors.newIfRequired room
+      Gov.allVariants.delIfRequired room
+      Gov.allVariants.newIfRequired room
 
     for gName, gov of room.memory.governors
       gov.tick()
@@ -35,6 +35,7 @@ tick = ->
 
   for cName, creep of Game.creeps
     creep.init()
+    creep.tick()
 
   for rName, room of Game.spawns
     ""

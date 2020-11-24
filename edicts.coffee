@@ -59,6 +59,9 @@ class Edict
       1
     else 0
 
+  needsWorkers: ->
+    @status is status.READY
+
   isAcceptingWorkers: ->
     @status is status.READY or
     (@status is status.UNDERWAY and @type is type.REPEATABLE)

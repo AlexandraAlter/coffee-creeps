@@ -3,7 +3,7 @@
 _ = require 'lodash'
 
 roles = require 'roles'
-governors = require 'governors'
+Gov = require 'governors'
 logger = require 'logger'
 u = require 'utils'
 
@@ -29,7 +29,7 @@ Room::init = ->
     @initFirstTime()
   logger.trace "room tick for #{@name}", indent: 1
   for gName, gov of @memory.governors
-    @memory.governors[gName] = governors.newFromMem @, gov
+    @memory.governors[gName] = Gov.newFromMem @, gov
   return
 
 
