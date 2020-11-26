@@ -1,8 +1,11 @@
 'use strict'
 
-_ = require 'lodash'
+Base = require 'base'
+
 u = require 'utils'
 logger = require 'logger'
+
+_ = require 'lodash'
 
 # class JobTemplate
 #   constructor: (options) ->
@@ -23,7 +26,7 @@ logger = require 'logger'
 #     name: @name
 
 
-class Job
+class Job extends Base
   @newFromMem: (room, opts) ->
     try
       gName = opts.edict.source
@@ -32,13 +35,15 @@ class Job
       edict = gov.edicts[id]
       opts.edict = edict
       job = new Job opts
-      logger.trace 'reconstituted Job', job, indent: 2
+      logger.trace 'reconstituted Job', job, indent: 1
       return job
     catch err
-      logger.error 'Job construction from memory failed', err.stack, indent: 2
+      logger.error 'Job.newFromMem failed', err.stack, indent: 1
       return
 
+
   constructor: (opts) ->
+    super()
     {
       @name,
       @edict,
@@ -46,8 +51,6 @@ class Job
       @status,
     } = opts
 
-  toString: ->
-    "Job()"
 
   toJSON: -> {
     edict:

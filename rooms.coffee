@@ -8,30 +8,46 @@ logger = require 'logger'
 u = require 'utils'
 
 
-defaultReqs = (room) ->
-  reqs =
-    creeps:
-      harvester1: roles.Harvester
+Room::withBackoff = (func) ->
+  if @backedOff
+    return
+
+  if @memory.backoff? and @memory.backoff > 0
+    @memory.backoff--
+    @backedOff = true
+    return
+
+  try
+    return func.call @
+  catch err
+    @memory.backoff = 10
+    logger.info "room backoff for #{@name}", indent: 1
+    throw err
+
+
+Room::attachGov = (govCls) ->
+  @memory.governors[govCls.constructor.name] = new govCls @, {}
+
+
+Room::detatchGov = (govCls) ->
+  delete @memory.governors[govCls.name]
 
 
 Room::initFirstTime = ->
-  logger.info "first time room init for #{@name}", indent: 1
+  logger.info "first time init for #{@}"
   @memory = {} unless @memory?
   @memory.governors = {} unless @memory.governors?
   @memory.backoff = 0
 
 
 Room::init = ->
-  if @memory.backoff > 0
-    @memory.backoff--
+  @withBackoff ->
+    if u.onFreq u.freq.RELOAD
+      @initFirstTime()
+    logger.trace "room tick for #{@name}", indent: 1
+    for gName, gov of @memory.governors
+      @memory.governors[gName] = Gov.newFromMem @, gov
     return
-  if u.onFreq u.freq.RELOAD
-    @initFirstTime()
-  logger.trace "room tick for #{@name}", indent: 1
-  for gName, gov of @memory.governors
-    @memory.governors[gName] = Gov.newFromMem @, gov
-  return
-
 
 
 # class Room
@@ -58,8 +74,3 @@ Room::init = ->
 
 #     return @missing = missing
 
-
-# rooms = [new Room room for room in Game.rooms]
-
-
-# module.exports = { Room, rooms }

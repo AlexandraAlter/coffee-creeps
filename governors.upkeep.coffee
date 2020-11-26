@@ -1,10 +1,12 @@
 'use strict'
 
-_ = require 'lodash'
 Gov = require 'governors'
 Edict = require 'edicts'
 Role = require 'roles'
+
 logger = require 'logger'
+
+_ = require 'lodash'
 
 
 class HarvestEdict extends Edict

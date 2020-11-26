@@ -1,49 +1,34 @@
 'use strict'
 
+Base = require 'base'
 
-#Harvester = require 'roles.harvester'
-#Hauler = require 'roles.hauler'
+logger = require 'logger'
 
 
-class Role
+class Role extends Base
   @variants = {}
 
-  @id: null
+  @makeNewVariant: ->
+    Gov.variants[@name] = @
+    Gov[@name] = @
+
+
   @parts: null
 
+
   @newFromMem: (creep, opts) ->
-    new Role creep, opts
+    try
+      cls = @variants[opts.cls]
+      role = new cls room, opts
+      logger.trace "reconstituted #{role}"
+      return role
+    catch err
+      logger.error "Gov.newFromMem failed\n#{err.stack}"
+      return
+
 
   constructor: (@creep, opts) ->
-
-
-guessFromName = (name) ->
-  if name.includes 'harvester'
-    Harvester
-  else if name.includes 'hauler'
-    Hauler
-  else null
-
-
-getFromMem = (mem) ->
-  if mem.roleid?
-    switch mem.roleid
-      when Harvester.id then Harvester
-      when Hauler.id then Hauler
-      else null
-  else null
-
-
-get = (creep) ->
-  role = getFromMem creep.mem
-  if not role?
-    role = guessFromName creep.name
-    creep.mem.roleid = role.id
-  return role.fromCreep creep
-
-
-set = (creep, role) ->
-  creep.mem.roleid = role.id
+    super()
 
 
 module.exports = Role

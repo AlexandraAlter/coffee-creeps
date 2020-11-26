@@ -1,11 +1,12 @@
 'use strict'
 
+Edict = require 'edicts'
+Base = require 'base'
+
 logger = require 'logger'
 
-Edict = require 'edicts'
 
-
-class Gov
+class Gov extends Base
   @variants: {}
 
   @makeNewVariant: ->
@@ -15,65 +16,104 @@ class Gov
   @allVariants:
 
     newIfRequired: (room) ->
-      for gName, gov of @variants
-        curGov = room.memory.governors[gov.cls]
-        if not curGov? and gov.requiredInRoom room, curGov
-          logger.info "attaching gov #{gov.name} to room #{room.name}"
-          new gov room, {}
+      logger.trace "adding govs in #{room}"
+      for gName, govCls of Gov.variants
+        curGov = room.memory.governors[govCls.name]
+        if not curGov? and govCls.requiredInRoom room, curGov
+          logger.info "attaching #{govCls}"
+          room.attachGov(govCls)
+
 
     delIfRequired: (room) ->
-      for gName, gov of @variants
-        curGov = room.memory.governors[gov.cls]
-        if curGov? and not gov.requiredInRoom room, curGov
-          logger.info "deleting gov #{gov.name} from room #{room.name}"
-          delete room.memory.governors[gov.name]
+      logger.trace "deleting govs in #{room}"
+      for gName, govCls of Gov.variants
+        curGov = room.memory.governors[govCls.name]
+        if curGov? and not govCls.requiredInRoom room, curGov
+          logger.info "deleting #{govCls}"
+          room.detatchGov(govCls)
 
-  @toJSON: ->
-    'class ' + @name
 
   # returns true if the given room requires this governor
   @requiredInRoom: (room, maybeGov) ->
     false
 
+
   @newFromMem: (room, opts) ->
     try
       cls = @variants[opts.cls]
       gov = new cls room, opts
-      logger.trace 'reconstituted Gov', gov, indent: 2
+      logger.trace "reconstituted #{gov}"
       return gov
     catch err
-      logger.error 'Gov.newFromMem failed\n', err.stack, indent: 2
+      logger.error 'Gov.newFromMem failed\n', err.stack
       return
 
-  constructor: (@room, opts) ->
-    @cls = @constructor.name
 
-    @room.memory.governors[@constructor.name] = @
+  constructor: (@room, opts) ->
+    super()
+
     Object.defineProperty @, 'room',
       enumerable: false
 
-    {@edicts} = opts
+    {@edicts, @backoff = 0} = opts
+    Object.defineProperty @, 'backedOff',
+      enumerable: false
+      value: false
+
     @edicts = if @edicts
       for eName, e of @edicts
         @edicts[eName] = Edict.newFromMem @, e
     else {}
 
+
+  withBackoff: (func) ->
+    if @backedOff
+      return
+    if @backoff > 0
+      @backoff--
+      @backedOff = true
+      return
+    try
+      return func.call @
+    catch err
+      @backoff = 10
+      logger.info "gov backoff for #{@name}"
+      throw err
+
+
+  initFirstTime: ->
+
+
   tick: ->
+    @withBackoff ->
+      logger.trace "gov tick for #{@name}"
+      if u.onFreq u.freq.RELOAD
+        @initFirstTime()
+      return
+
+
   updateEdicts: ->
 
+
   assignEdicts: ->
-    logger.trace 'assigning Edicts for Gov', @cls, indent: 2
-    for edict of @edicts
-      logger.trace 'considering Edict', edict, indent: 3
+    @withBackoff ->
+      logger.trace "assigning edicts for #{@}"
+      for edict of @edicts
+        logger.trace "considering #{edict}", indent: 1
+        assigned = false
+        for creep of Game.creeps
+          if false
+            logger.withIndent =>
+              edict.assignTo creep
+            assigned = true
+            break
+        if not assigned
+          logger.trace "could not assign #{edict}", indent: 2
+
 
   toString: ->
     edictNum = Object.keys(@edicts).length
-    "#{@constructor.name}(n=#{@name}, r=#{@room.name}, e=#{edictNum})"
-
-  toJSON: -> {
-    cls: @constructor.name,
-    @...,
-  }
+    "[#{@cls}(n=#{@name}, r=#{@room.name}, e=#{edictNum})]"
 
 
 module.exports = Gov

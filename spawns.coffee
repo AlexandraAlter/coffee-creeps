@@ -2,6 +2,7 @@
 
 rooms = require 'rooms'
 roles = require 'roles'
+
 logger = require 'logger'
 
 
@@ -12,6 +13,7 @@ if not mem.reqs? then mem.reqs = {}
 
 class Factory
   constructor: (@name, @spawner) ->
+
 
   run: () ->
     if not @spawner.isActive() or @spawner.spawning

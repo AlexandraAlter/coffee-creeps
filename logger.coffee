@@ -9,63 +9,78 @@ levels =
   ERROR: 4
   FATAL: 5
 
+
+class Logger
+  constructor: (opts) ->
+    {@level = Memory.logLevel, @indent = 0} = opts
+
+  log: (prefix, strs..., opts) ->
+    if typeof opts isnt 'object'
+      strs = [strs..., opts]
+      opts = {}
+    indent = @indent + (opts.indent or 0)
+    console.log('|-'.repeat(indent) + prefix, strs...)
+
+  trace: (strs..., opts) ->
+    if @level <= levels.TRACE
+      @log('trace:', strs..., opts)
+
+  info: (strs..., opts) ->
+    if @level <= levels.INFO
+      @log('info:', strs..., opts)
+
+  warn: (strs..., opts) ->
+    if @level <= levels.WARN
+      @log('warn:', strs..., opts)
+
+  error: (strs..., opts) ->
+    if @level <= levels.ERROR
+      @log('error:', strs..., opts)
+
+  fatal: (strs..., opts) ->
+    if @level <= levels.FATAL
+      @log('fatal:', strs..., opts)
+
+
+globalLogger = new Logger {}
+
+log = (prefix, strs..., opts) -> globalLogger.log prefix, strs..., opts
+trace = (strs..., opts) -> globalLogger.trace strs..., opts
+info = (strs..., opts) -> globalLogger.info strs..., opts
+warn = (strs..., opts) -> globalLogger.warn strs..., opts
+error = (strs..., opts) -> globalLogger.error strs..., opts
+fatal = (strs..., opts) -> globalLogger.fatal strs..., opts
+
+withIndent = (func) ->
+  globalLogger.indent++
+  try
+    res = func()
+  finally
+    globalLogger.indent--
+  return res
+
+resetIndent = ->
+  if globalLogger.indent isnt 0
+    globalLogger.indent = 0
+    info 'reset indent'
+
+setLevel = (level) ->
+  if globalLogger.level isnt level
+    globalLogger.level = level
+    info 'logging at level', _.findKey levels, (v) -> v is level
+
+
 if not Memory.logLevel?
   Memory.logLevel = levels.INFO
 
-
-getOpts = (strs) ->
-  opts = _.last(strs)
-  if typeof opts is 'object'
-    [_.initial(strs), opts]
-  else
-    [strs, {}]
+setLevel Memory.logLevel
 
 
-getIndent = (opts) ->
-  if opts.indent?
-    '|-'.repeat(opts.indent)
-  else ''
-
-
-getLevel = -> Memory.logLevel
-
-
-doLog = (prefix, strs...) ->
-  [strs, opts] = getOpts strs
-  console.log(getIndent(opts) + prefix, strs...)
-
-
-log = (strs...) ->
-  doLog('log:', strs...)
-
-
-trace = (strs...) ->
-  if getLevel() <= levels.TRACE
-    doLog('trace:', strs...)
-
-
-info = (strs...) ->
-  if getLevel() <= levels.INFO
-    doLog('info:', strs...)
-
-
-warn = (strs...) ->
-  if getLevel() <= levels.WARN
-    doLog('warn:', strs...)
-
-
-error = (strs...) ->
-  if getLevel() <= levels.ERROR
-    doLog('error:', strs...)
-
-
-fatal = (strs...) ->
-  if getLevel() <= levels.FATAL
-    doLog('fatal:', strs...)
-
-
-info 'logging at level', _.findKey levels, (v) -> v is getLevel()
-
-
-module.exports = { levels, log, trace, info, warn, error, fatal }
+module.exports = {
+  levels,
+  log,
+  trace, info, warn, error, fatal,
+  withIndent, resetIndent,
+  setLevel
+}
 

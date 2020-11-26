@@ -1,8 +1,12 @@
 'use strict'
 
-_ = require 'lodash'
-logger = require 'logger'
+Job = require 'jobs'
+Base = require 'base'
+
 u = require 'utils'
+logger = require 'logger'
+
+_ = require 'lodash'
 
 
 status =
@@ -18,39 +22,45 @@ type =
   MULTIPLE: 'multiple'
 
 
-class Edict
+class Edict extends Base
   @variants: {}
+
+  @makeNewVariant: ->
+    Edict.variants[@name] = @
+    Edict[@name] = @
+
 
   @status: status
   @type: type
 
-  @toJSON: ->
-    'class ' + @name
 
-  @newFromMem: (@source, opts) ->
+  @newFromMem: (source, opts) ->
     try
       cls = @variants[opts.cls]
-      edict = new cls @source, opts
-      logger.trace 'reconstituted Edict', edict, indent: 2
+      edict = new cls source, opts
+      logger.trace "reconstituted #{edict}"
       return edict
     catch err
-      logger.error 'Edict.newFromMem failed\n', err.stack, indent: 2
+      logger.error "Edict.newFromMem failed\n#{err.stack}"
       return
+
 
   @filter: (creep) -> false
 
+
   constructor: (@source, opts) ->
+    super()
     { @name,
       @priority = u.priority.MED,
-      @status = Edict.status.READY,
-      @type = Edict.type.ONESHOT,
+      @status = status.READY,
+      @type = type.ONESHOT,
       @lastStart = null,
       @lastFinish = null,
-      @creeps = null,
+      @creeps = [],
     } = opts
     throw Error('must provide a name') if not _.isString @name
-    Object.defineProperty @, 'source',
-      enumerable: false
+    Object.defineProperty @, 'source', enumerable: false
+
 
   countWorkers: ->
     if typeof @creeps is 'array'
@@ -59,49 +69,55 @@ class Edict
       1
     else 0
 
+
   needsWorkers: ->
     @status is status.READY
+
 
   isAcceptingWorkers: ->
     @status is status.READY or
     (@status is status.UNDERWAY and @type is type.REPEATABLE)
 
-  toString: ->
-    "#{@constructor.name}()"
 
-  toJSON: -> {
-    cls: @constructor.name,
-    @...,
-  }
+  assignTo: (creep) ->
+    logger.trace "assigning #{@} to #{creep}"
+    @creeps.push creep.name
+    @lastStart = Game.time
+    # TODO do we need the source?
+    creep.job = new Job edict: @ source: @source
+
+
+  removeFrom: (creep) ->
+    _.pull @creeps, creep.name
+    @lastFinish = Game.time
+    if @countWorkers() is 0
+      if @type is type.ONESHOT
+        @status = status.DONE
+      else
+        @status = status.READY
 
 
 class Edict.CreateCreep extends Edict
-  Edict.variants[@name] = @
+  @makeNewVariant()
+
 
   constructor: (source, opts) ->
     super source, opts
     {@spec} = opts
 
-  toString: ->
-    @constructor.name + "(#{@spec})"
-
 
 class Edict.DestroyCreep extends Edict
-  Edict.variants[@name] = @
+  @makeNewVariant()
+
 
   constructor: (@spec)
 
-  toString: ->
-    "DestroyCreep(#{@spec})"
-
 
 class Edict.RunTask extends Edict
-  Edict.variants[@name] = @
+  @makeNewVariant()
+
 
   constructor: (@task)
-
-  toString: ->
-    "RunTask(#{@task})"
 
 
 module.exports = Edict
