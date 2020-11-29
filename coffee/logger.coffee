@@ -2,6 +2,7 @@
 
 _ = require 'lodash'
 
+
 levels =
   TRACE: 1
   INFO: 2
@@ -14,46 +15,52 @@ class Logger
   constructor: (opts) ->
     {@level = Memory.logLevel, @indent = 0} = opts
 
-  log: (prefix, strs..., opts) ->
-    if typeof opts isnt 'object'
-      strs = [strs..., opts]
-      opts = {}
-    indent = @indent + (opts.indent or 0)
-    console.log('|-'.repeat(indent) + prefix, strs...)
+  log: (prefix, str, opts) ->
+    indent = @indent + (opts? and opts.indent? and opts.indent or 0)
+    if typeof str is 'function'
+      str = str()
+    console.log('|-'.repeat(indent) + prefix, str)
 
-  debug: (strs..., opts) ->
-    @log('debug:', strs..., opts)
+  fmt: (strings, exps...) ->
+    ->
+      strings.reduce (acc, text, i) ->
+        acc + exps[i - 1].toString() + text
 
-  trace: (strs..., opts) ->
+  debug: (str, opts) ->
+    @log('debug:', str, opts)
+
+  trace: (str, opts) ->
     if @level <= levels.TRACE
-      @log('trace:', strs..., opts)
+      @log('trace:', str, opts)
 
-  info: (strs..., opts) ->
+  info: (str, opts) ->
     if @level <= levels.INFO
-      @log('info:', strs..., opts)
+      @log('info:', str, opts)
 
-  warn: (strs..., opts) ->
+  warn: (str, opts) ->
     if @level <= levels.WARN
-      @log('warn:', strs..., opts)
+      @log('warn:', str, opts)
 
-  error: (strs..., opts) ->
+  error: (str, opts) ->
     if @level <= levels.ERROR
-      @log('error:', strs..., opts)
+      @log('error:', str, opts)
 
-  fatal: (strs..., opts) ->
+  fatal: (str, opts) ->
     if @level <= levels.FATAL
-      @log('fatal:', strs..., opts)
+      @log('fatal:', str, opts)
 
 
 globalLogger = new Logger {}
 
-log = (prefix, strs..., opts) -> globalLogger.log prefix, strs..., opts
-debug = (strs..., opts) -> globalLogger.debug strs..., opts
-trace = (strs..., opts) -> globalLogger.trace strs..., opts
-info = (strs..., opts) -> globalLogger.info strs..., opts
-warn = (strs..., opts) -> globalLogger.warn strs..., opts
-error = (strs..., opts) -> globalLogger.error strs..., opts
-fatal = (strs..., opts) -> globalLogger.fatal strs..., opts
+log = (prefix, str, opts) -> globalLogger.log prefix, str, opts
+fmt = (strings, exps...) -> globalLogger.fmt strings, exps...
+debug = (str, opts) -> globalLogger.debug str, opts
+trace = (str, opts) -> globalLogger.trace str, opts
+info = (str, opts) -> globalLogger.info str, opts
+warn = (str, opts) -> globalLogger.warn str, opts
+error = (str, opts) -> globalLogger.error str, opts
+fatal = (str, opts) -> globalLogger.fatal str, opts
+
 
 withIndent = (func) ->
   globalLogger.indent++
@@ -68,11 +75,12 @@ resetIndent = ->
     globalLogger.indent = 0
     info 'reset indent'
 
+
 setLevel = (level) ->
   if globalLogger.level isnt level
     globalLogger.level = level
     Memory.logLevel = level
-    info 'logging at level', _.findKey levels, (v) -> v is level
+    info "logging at level #{_.findKey levels, (v) -> v is level}"
 
 
 if not Memory.logLevel?
@@ -83,7 +91,7 @@ setLevel Memory.logLevel
 
 module.exports = {
   levels,
-  log, debug,
+  log, fmt, debug,
   trace, info, warn, error, fatal,
   withIndent, resetIndent,
   setLevel

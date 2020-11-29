@@ -6,7 +6,6 @@ edition = "2018"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
-target = "nodejs"
 
 [features]
 default = ["console_error_panic_hook"]

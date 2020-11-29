@@ -11,17 +11,17 @@ Edict = require 'edicts'
 Gov = require 'governors.all'
 
 logger = require 'logger'
+l = logger.fmt
 freq = require 'freq'
 
 
 tick = ->
   logger.resetIndent()
-  logger.trace 'beginning tick'
   for rName, room of Game.rooms
     room.init()
 
     freq.onRareOrReload 0, =>
-      logger.info "refreshing govs in #{room}"
+      logger.info l"refreshing govs in #{room}"
       logger.withIndent =>
         Gov.allVariants.delIfRequired room
         Gov.allVariants.newIfRequired room

@@ -1,9 +1,8 @@
 'use strict'
 
 Base = require 'base'
-
 logger = require 'logger'
-
+l = logger.fmt
 _ = require 'lodash'
 
 
@@ -33,7 +32,7 @@ class Role extends Base
     else
       cls = @variants[opts.cls]
       role = new cls creep, opts
-    logger.trace "reconstituted #{role}"
+    logger.trace f"reconstituted #{role}"
     return role
 
   constructor: (@creep, opts) ->

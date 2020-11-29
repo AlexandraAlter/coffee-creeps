@@ -1,12 +1,15 @@
 'use strict'
 
 Base = require 'base'
-
 logger = require 'logger'
+l = logger.fmt
+freq = require 'freq'
 
 
 class Task extends Base
   @variants = {}
+
+  @stages: 1
 
   @makeNewVariant: ->
     Task.variants[@name] = @
@@ -15,7 +18,7 @@ class Task extends Base
   @newFromMem: (creep, opts) ->
     cls = @variants[opts.cls]
     task = new cls creep, opts
-    logger.trace "reconstituted #{task}"
+    logger.trace l"reconstituted #{task}"
     return task
 
   constructor: (@creep, opts) ->
@@ -33,11 +36,15 @@ class Task.Staged extends Task
     super creep, opts
     { @stage = 0 } = opts
 
+  do: ->
+    if @stage >= @constructor.stages
+      @deadStage()
+
   isDone: ->
-    @stage is 0
+    @stage >= @constructor.stages
 
   deadStage: ->
-    logger.error "#{@} extended past last stage"
+    logger.warn l"#{@} extended past last stage"
 
   toString: ->
     super().slice(0, -1) + " s=#{stage}]"
@@ -46,15 +53,39 @@ class Task.Staged extends Task
 class Task.Nested extends Task.Staged
   @subTasks: []
 
-  @stages: do =>
-    @subTasks.length
+  @calcStages: ->
+    ownTasks = 0
+    _.sum(
+      for sub in @subTasks
+        if typeof sub is 'number'
+          if freq.onSafety and (sub isnt ownTasks)
+            logger.warn l"incorrectly numbered task in #{@}:#{sub}"
+          ownTasks++
+          1
+        else
+          sub.stages
+    )
+
+  @stages: do => @calcStages()
 
   constructor: (creep, opts) ->
     super creep, opts
-    { @stage = 0 } = opts
+    {} = opts
+
+  do: ->
+    curStage = @stage
+    counter = 0
+    for task in @constructor.subTasks
+      if counter <= task.stages
+        @stage -= counter
+        task::do.call @
+        @stage += counter
+        break
+      else
+        counter += task.stages
 
   isDone: ->
-    @stage is 0
+    @stage >= @constructor.stages
 
   toString: ->
     super().slice(0, -1) + " s=#{stage}]"
@@ -70,14 +101,17 @@ class Task.Move extends Task
   do: ->
     res = @creep.move @target
     if res isnt OK
-      logger.error "#{@creep} failed to move with #{res}"
+      logger.error l"#{@creep} failed to move with #{res}"
 
   isDone: ->
     @creep.pos.getRangeTo @target <= 1
 
 
-class Task.GetEnergy extends Task.Staged
+class Task.GetEnergy extends Task.Nested
   @makeNewVariant()
+
+  @subTasks: [Task.Move, 0, 1]
+  @stages: do => @calcStages()
 
   constructor: (creep, opts) ->
     super creep, opts
@@ -93,10 +127,7 @@ class Task.GetEnergy extends Task.Staged
       if @creep.store.getFreeCapacity() is 0
         @stage++
     else
-      @deadStage()
-
-  isDone: ->
-    @stage is 2
+      super()
 
 
 module.exports = Task

@@ -2,7 +2,6 @@
 
 Base = require 'base'
 Role = require 'roles'
-
 logger = require 'logger'
 freq = require 'freq'
 

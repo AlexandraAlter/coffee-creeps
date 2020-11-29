@@ -29,17 +29,11 @@ class HarvestEdict extends Edict
   @filter: (creep) ->
     creep.role instanceof Harvester
 
-  constructor: (source, opts) ->
-    super source, opts
-    { target: @targetCache, @targetId } = opts
-
-    Object.defineProperty @, 'targetCache',
+  Object.defineProperties @prototype,
+    targetCache:
       enumerable: false
 
-    if not @targetId
-      @targetId = @targetCache.id
-
-    Object.defineProperty @, 'target',
+    target:
       enumerable: false
       get: ->
         if @targetCache
@@ -49,6 +43,13 @@ class HarvestEdict extends Edict
       set: (val) ->
         @targetCache = val
         @targetId = val.id
+
+  constructor: (source, opts) ->
+    super source, opts
+    { target: @targetCache, @targetId } = opts
+
+    if not @targetId
+      @targetId = @targetCache.id
 
 
 class StaticHarvestEdict extends Edict
