@@ -1,0 +1,5 @@
+node_modules
+dist
+envs
+package-lock.json
+target
