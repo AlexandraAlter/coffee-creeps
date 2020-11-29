@@ -7,8 +7,8 @@ build = $(patsubst ./%.coffee, dist/%.js, $(src))
 build: buildAll upload
 
 buildAll: $(src)
-	coffee -o dist -c *.coffee
-	nim js -d:nodejs --out:dist/nim.js main.nim
+	coffee -o dist -c coffee/*.coffee
+	wasm-pack build --out-dir dist --target nodejs
 
 $(build): buildAll
 
