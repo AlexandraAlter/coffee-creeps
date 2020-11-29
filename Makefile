@@ -8,6 +8,7 @@ build: buildAll upload
 
 buildAll: $(src)
 	coffee -o dist -c coffee/*.coffee
+	nim js -d:nodejs -o:dist/nim.js nim/main.nim
 	wasm-pack build --out-dir dist --target nodejs
 
 $(build): buildAll
