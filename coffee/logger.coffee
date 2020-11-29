@@ -24,7 +24,12 @@ class Logger
   fmt: (strings, exps...) ->
     ->
       strings.reduce (acc, text, i) ->
-        acc + exps[i - 1].toString() + text
+        val = exps[i - 1]
+        if val?
+          val = val.toString()
+        else
+          val = val
+        acc + val + text
 
   debug: (str, opts) ->
     @log('debug:', str, opts)

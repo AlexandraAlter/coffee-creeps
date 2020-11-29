@@ -1,9 +1,9 @@
 'use strict'
 
 Edict = require 'edicts'
-
 freq = require 'freq'
 logger = require 'logger'
+l = logger.fmt
 
 
 StructureSpawn.cleanMemory = ->
@@ -24,12 +24,12 @@ StructureSpawn::withBackoff = (func) ->
     return func.call @
   catch err
     @memory.backoff = 10
-    logger.info "backoff for #{@}"
+    logger.info l"backoff for #{@}"
     throw err
 
 
 StructureSpawn::initFirstTime = ->
-  logger.info "initFirstTime for #{@}"
+  logger.info l"initFirstTime for #{@}"
   if @memory.edict
     @memory.edict = Edict.newFromMem null, @memory.edict
   @memory.backoff = 0 if not @memory.backoff?
@@ -64,9 +64,14 @@ StructureSpawn::fail = ->
   @memory.backoff = 20
 
 
+StructureSpawn::complete = ->
+  @edict.complete @
+  @memory.edictRef = null
+
+
 StructureSpawn::tick = ->
   @withBackoff =>
-    logger.trace "tick for #{@}"
+    logger.trace l"tick for #{@}"
 
     if not @isActive()
       return
@@ -81,6 +86,7 @@ StructureSpawn::tick = ->
         @memory.edictRef = edict.toRef()
         @edict = edict
         @edict.start @
+        logger.info l"#{@} starting #{@memory.edictRef}"
 
     if (not @spawning) and @edict and (@edict instanceof Edict.CreateCreeps)
       try
@@ -94,12 +100,15 @@ StructureSpawn::tick = ->
         @fail()
         throw err
       if res is OK
-        logger.info "#{@} spawning #{name} with #{body} for #{cost}"
+        logger.info l"#{@} spawning #{name} with #{body} for #{cost}"
       else
-        logger.error "spawnCreep returned #{res}"
+        logger.error l"#{@} returned #{res}"
         @fail()
 
     if @spawning and (@edict instanceof Edict.CreateCreeps)
       if @spawning.remainingTime is 1
-        @edict.complete @
-        @memory.edictRef = null
+        @complete()
+
+
+StructureSpawn::toString = ->
+  "[StructureSpawn n=#{@name}]"

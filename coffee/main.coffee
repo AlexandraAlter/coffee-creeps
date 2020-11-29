@@ -29,6 +29,9 @@ tick = ->
     for gName, gov of room.memory.governors
       gov.tick()
       gov.updateEdicts()
+      freq.onRareOrReload 0, =>
+        logger.info l"cleaning govs in #{room}"
+        gov.clean()
   freq.onRare 1, =>
     Room.cleanMemory()
 

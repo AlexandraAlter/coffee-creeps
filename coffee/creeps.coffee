@@ -2,7 +2,10 @@
 
 Base = require 'base'
 Role = require 'roles'
+Task = require 'tasks'
+Edict = require 'edicts'
 logger = require 'logger'
+l = logger.fmt
 freq = require 'freq'
 
 
@@ -24,8 +27,8 @@ class Creep.Job extends Base
       @edict = Edict.newFromRef @edict
 
   toJSON: -> {
-    edict: @edict.toRef(),
     @...,
+    edict: @edict.toRef(),
   }
 
 
@@ -34,6 +37,12 @@ Creep.cleanMemory = ->
   for cName of Memory.creeps
     if not Game.creeps[cName]?
       delete Memory.creeps[cName]
+
+
+Creep::backoff = (dur, reason = null) ->
+  @memory.backoff = dur
+  reasonStr = if reason? and reason then " because: #{reason}" else ""
+  logger.info l"#{@} backing off for #{dur}#{reasonStr}"
 
 
 Creep::withBackoff = (func) ->
@@ -46,15 +55,15 @@ Creep::withBackoff = (func) ->
   try
     return func.call @
   catch err
-    @memory.backoff = 10
-    logger.info "backoff for #{@}"
+    @backoff 10
     throw err
 
 
 Creep::initFirstTime = ->
   logger.info "initFirstTime for #{@}"
   @memory = {} if not @memory?
-  @memory.job = null if not @memory.job?
+  @memory.job = undefined
+  @memory.task = null if not @memory.task?
   @memory.role = null if not @memory.role?
   @memory.backoff = 0 if not @memory.backoff?
 
@@ -70,22 +79,57 @@ Creep::init = ->
       @memory.role = Role.newFromMem @, @memory.role
 
 
-Creep::pickEdict = ->
-  return
+Creep::findEdict = ->
+  for gName, gov of @room.memory.governors
+    for eName, edict of gov.edicts
+      if (edict instanceof Edict.RunTask) and edict.isReady()
+        return edict
+
+
+Creep::fail = ->
+  @edict.fail @
+  @memory.task = null
+  @memory.edictRef = null
+  @backoff 20
+
+
+Creep::complete = ->
+  @edict.complete @
+  @memory.task = null
+  @memory.edictRef = null
 
 
 Creep::tick = ->
   @withBackoff ->
-    logger.trace "tick for #{@}"
+    logger.trace l"tick for #{@}"
 
-    if not @job
-      @pickEdict()
-    if not @task? and @job?
-      @task = @job.nextTask()
-    if @task?
-      @task.do()
-      if @task.isDone()
-        @task = null
+    # TODO optimise for performance
+    if @memory.edictRef
+      @edict = Edict.newFromRef @memory.edictRef
+    if @memory.task
+      @memory.task = Task.newFromMem @, @memory.task
+
+    if not @edict
+      edict = @findEdict()
+      if edict
+        @memory.edictRef = edict.toRef()
+        @edict = edict
+        if edict instanceof Edict.RunTask
+          @memory.task = edict.makeTask @
+        @edict.start @
+        logger.info l"#{@} starting #{@memory.edictRef}"
+      else
+        @backoff 20, 'cannot find a job'
+
+    if @memory.task
+      try
+        @edict.task.do @memory.task
+      catch err
+        @fail()
+        logger.error l"#{@} failed task"
+        throw err
+      if @edict.task.isDone @memory.task
+        @complete()
 
 
 Creep::toString = ->

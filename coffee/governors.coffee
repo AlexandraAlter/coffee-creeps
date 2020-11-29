@@ -105,6 +105,10 @@ class Gov extends Base
         if not assigned
           logger.trace "could not assign #{edict}", indent: 2
 
+  clean: ->
+    for eName, edict of @edicts
+      edict.clean()
+
   toString: ->
     edictNum = Object.keys(@edicts).length
     "[#{@cls} r=#{@room.name} e=#{edictNum}]"

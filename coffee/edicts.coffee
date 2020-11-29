@@ -2,6 +2,7 @@
 
 Base = require 'base'
 Role = require 'roles'
+Task = require 'tasks'
 
 logger = require 'logger'
 freq = require 'freq'
@@ -43,7 +44,7 @@ class Edict extends Base
   @status: status
   @type: type
   @priority: priority
-  
+
   @newFromRef: (ref) ->
     [rName, gName, eName] = ref.split ':'
     edict = Memory.rooms[rName].governors[gName].edicts[eName]
@@ -148,20 +149,22 @@ class Edict extends Base
 
   tick: ->
 
+  clean: ->
+
 
 class Edict.SpawnerEdict extends Edict
   @filter: (worker) -> true
 
-  constructor: (spawner, opts) ->
-    super spawner, opts
+  constructor: (source, opts) ->
+    super source, opts
     {} = opts
 
 
 class Edict.CreateCreeps extends Edict.SpawnerEdict
   @makeNewVariant()
 
-  constructor: (spawner, opts) ->
-    super spawner, opts
+  constructor: (source, opts) ->
+    super source, opts
     {@role, @creepName, @number, @creeps = []} = opts
     if typeof @role is 'string'
       @role = Role.clsFromMem @role
@@ -187,13 +190,30 @@ class Edict.DestroyCreeps extends Edict
 
   constructor: (source, opts) ->
     super source, opts
-    {@role, @number} = opts
+    {} = opts
 
 
 class Edict.RunTask extends Edict
   @makeNewVariant()
 
-  constructor: (@task)
+  constructor: (source, opts) ->
+    super source, opts
+    {@task, @taskOpts} = opts
+    if typeof @task is 'string'
+      @task = Task.clsFromMem @task
+
+  makeTask: (creep) ->
+    new @task creep, @taskOpts
+
+  clean: ->
+    ref = @toRef()
+    count = 0
+    for cName, creep of Game.creeps
+      if creep.memory.edictRef is ref
+        count += 1
+    if count isnt @curWorkers
+      logger.warn "#{@} has mismatched workers, #{count} not #{@curWorkers}"
+      @curWorkers = count
 
 
 module.exports = Edict
