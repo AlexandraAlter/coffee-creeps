@@ -8,7 +8,7 @@ build: buildAll upload
 
 buildAll: $(src)
 	coffee -o dist -c *.coffee
-	nim js --out:dist/nim.js *.nim
+	nim js -d:nodejs --out:dist/nim.js main.nim
 
 $(build): buildAll
 
