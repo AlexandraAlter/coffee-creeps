@@ -45,12 +45,10 @@ class Gov extends Base
   constructor: (@room, opts) ->
     super()
 
-    Object.defineProperty @, 'room',
-      enumerable: false
+    Object.defineProperty @, 'room', enumerable: false
 
     {@edicts = {}, @backoff = 0} = opts
     Object.defineProperty @, 'backedOff',
-      writable: true
       enumerable: false
       value: false
 

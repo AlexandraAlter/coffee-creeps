@@ -29,24 +29,23 @@ class HarvestEdict extends Edict
   @filter: (creep) ->
     creep.role instanceof Harvester
 
-  Object.defineProperties @prototype,
-    targetCache:
-      enumerable: false
-
-    target:
-      enumerable: false
-      get: ->
-        if @targetCache
-          @targetCache
-        else
-          @targetCache = Game.getObjectById @targetId
-      set: (val) ->
-        @targetCache = val
-        @targetId = val.id
+  Object.defineProperty @prototype, 'target',
+    enumerable: false
+    get: ->
+      if @targetCache
+        @targetCache
+      else
+        @targetCache = Game.getObjectById @targetId
+    set: (val) ->
+      @targetCache = val
+      @targetId = val.id
 
   constructor: (source, opts) ->
     super source, opts
-    { target: @targetCache, @targetId } = opts
+    { @targetId } = opts
+    Object.defineProperty @, 'targetCache',
+      enumerable: false
+      value: opts.target
 
     if not @targetId
       @targetId = @targetCache.id
