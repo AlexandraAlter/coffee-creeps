@@ -1,7 +1,7 @@
 'use strict'
 
 
-Gov = require 'governors.base'
+Gov = require 'governors'
 
 
 class CombatGov extends Gov
@@ -9,11 +9,6 @@ class CombatGov extends Gov
 
   constructor: () ->
     super()
-
-  start: ->
-  makeSpawnRequests: ->
-  makeJobRequests: ->
-  finish: ->
 
 
 

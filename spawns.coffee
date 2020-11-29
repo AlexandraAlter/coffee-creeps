@@ -1,49 +1,105 @@
 'use strict'
 
-rooms = require 'rooms'
-roles = require 'roles'
+Edict = require 'edicts'
 
+freq = require 'freq'
 logger = require 'logger'
 
 
-mem = Memory.factories or (Memory.factories = {})
-if not mem.state? then mem.state = {}
-if not mem.reqs? then mem.reqs = {}
+StructureSpawn.cleanMemory = ->
+  logger.info 'cleaning spawns'
+  for sName of Memory.spawns
+    if not Game.spawns[sName]?
+      delete Memory.spawn[sName]
 
 
-class Factory
-  constructor: (@name, @spawner) ->
+StructureSpawn::withBackoff = (func) ->
+  if @backedOff
+    return
+  if @memory.backoff? and @memory.backoff > 0
+    @memory.backoff--
+    @backedOff = true
+    return
+  try
+    return func.call @
+  catch err
+    @memory.backoff = 10
+    logger.info "backoff for #{@}"
+    throw err
 
 
-  run: () ->
-    if not @spawner.isActive() or @spawner.spawning
+StructureSpawn::initFirstTime = ->
+  logger.info "initFirstTime for #{@}"
+  if @memory.edict
+    @memory.edict = Edict.newFromMem null, @memory.edict
+  @memory.backoff = 0 if not @memory.backoff?
+
+
+StructureSpawn::init = ->
+  @withBackoff =>
+    freq.onReload =>
+      @initFirstTime()
+    if @memory.edict
+      @memory.edict = Edict.newFromMem null, @memory.edict
+
+
+StructureSpawn::makeName = (role) ->
+  loop
+    name = role.name + '_' + Math.random().toString(36).substr(2, 5)
+    if not Game.creeps[name]?
+      break
+  name
+
+
+StructureSpawn::findEdict = ->
+  for gName, gov of @room.memory.governors
+    for eName, edict of gov.edicts
+      if (edict instanceof Edict.SpawnerEdict) and edict.isReady()
+        return edict
+
+
+StructureSpawn::fail = ->
+  @edict.fail @
+  @memory.edictRef = null
+  @memory.backoff = 20
+
+
+StructureSpawn::tick = ->
+  @withBackoff =>
+    logger.trace "tick for #{@}"
+
+    if not @isActive()
       return
 
-    room = new rooms.Room @spawner.room
-    creeps = room.inner.find FIND_MY_CREEPS
+    # TODO optimise for performance
+    if @memory.edictRef
+      @edict = Edict.newFromRef @memory.edictRef
 
-    missing = room.getMissingReqs()
-    if missing.length > 0
-      name = missing[0].name
-      parts = missing[0].role.parts
-      err = @spawner.spawnCreep(parts, name)
-      if err isnt 0
-        logger.error 'spawning creep threw', err
+    if (not @spawning) and (not @edict)
+      edict = @findEdict()
+      if edict
+        @memory.edictRef = edict.toRef()
+        @edict = edict
+        @edict.start @
 
-    return
+    if (not @spawning) and @edict and (@edict instanceof Edict.CreateCreeps)
+      try
+        role = @edict.role
+        name = @makeName role
+        body = role.selectParts 100
+        cost = role.costOfParts body
+        mem = {role: new role}
+        res = @spawnCreep body, name, memory: mem
+      catch err
+        @fail()
+        throw err
+      if res is OK
+        logger.info "#{@} spawning #{name} with #{body} for #{cost}"
+      else
+        logger.error "spawnCreep returned #{res}"
+        @fail()
 
-
-getFactories = ->
-  for name, spawn of Game.spawns
-    yield new Factory name, spawn
-  return
-
-
-run = ->
-  for factory from getFactories()
-    factory.run()
-  return
-
-
-module.exports = { Factory, run }
-
+    if @spawning and (@edict instanceof Edict.CreateCreeps)
+      if @spawning.remainingTime is 1
+        @edict.complete @
+        @memory.edictRef = null

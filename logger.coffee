@@ -21,6 +21,9 @@ class Logger
     indent = @indent + (opts.indent or 0)
     console.log('|-'.repeat(indent) + prefix, strs...)
 
+  debug: (strs..., opts) ->
+    @log('debug:', strs..., opts)
+
   trace: (strs..., opts) ->
     if @level <= levels.TRACE
       @log('trace:', strs..., opts)
@@ -45,6 +48,7 @@ class Logger
 globalLogger = new Logger {}
 
 log = (prefix, strs..., opts) -> globalLogger.log prefix, strs..., opts
+debug = (strs..., opts) -> globalLogger.debug strs..., opts
 trace = (strs..., opts) -> globalLogger.trace strs..., opts
 info = (strs..., opts) -> globalLogger.info strs..., opts
 warn = (strs..., opts) -> globalLogger.warn strs..., opts
@@ -67,6 +71,7 @@ resetIndent = ->
 setLevel = (level) ->
   if globalLogger.level isnt level
     globalLogger.level = level
+    Memory.logLevel = level
     info 'logging at level', _.findKey levels, (v) -> v is level
 
 
@@ -78,7 +83,7 @@ setLevel Memory.logLevel
 
 module.exports = {
   levels,
-  log,
+  log, debug,
   trace, info, warn, error, fatal,
   withIndent, resetIndent,
   setLevel

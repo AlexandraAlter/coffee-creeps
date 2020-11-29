@@ -1,6 +1,6 @@
 'use strict'
 
-Gov = require 'governors.base'
+Gov = require 'governors'
 
 
 class BuildingGov extends Gov

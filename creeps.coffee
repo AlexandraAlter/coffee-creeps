@@ -1,11 +1,40 @@
 'use strict'
 
+Base = require 'base'
+Role = require 'roles'
 
-roles = require 'roles'
-tasks = require 'tasks'
 logger = require 'logger'
-Job = require 'jobs'
-u = require 'utils'
+freq = require 'freq'
+
+
+class Creep.Job extends Base
+  @newFromMem: (room, opts) ->
+    gName = opts.edict.source
+    id = opts.edict.id
+    gov = room.memory.governors[gname]
+    edict = gov.edicts[id]
+    opts.edict = edict
+    job = new Job opts
+    logger.trace "reconstituted #{job}"
+    return job
+
+  constructor: (opts) ->
+    super()
+    { @name, @edict, @task, @status } = opts
+    if typeof @edict is 'string'
+      @edict = Edict.newFromRef @edict
+
+  toJSON: -> {
+    edict: @edict.toRef(),
+    @...,
+  }
+
+
+Creep.cleanMemory = ->
+  logger.info 'cleaning creeps'
+  for cName of Memory.creeps
+    if not Game.creeps[cName]?
+      delete Memory.creeps[cName]
 
 
 Creep::withBackoff = (func) ->
@@ -19,12 +48,12 @@ Creep::withBackoff = (func) ->
     return func.call @
   catch err
     @memory.backoff = 10
-    logger.info "creep backoff for #{@name}", indent: 1
+    logger.info "backoff for #{@}"
     throw err
 
 
 Creep::initFirstTime = ->
-  logger.info "first time init for creep #{@name}", indent: 1
+  logger.info "initFirstTime for #{@}"
   @memory = {} if not @memory?
   @memory.job = null if not @memory.job?
   @memory.role = null if not @memory.role?
@@ -33,13 +62,13 @@ Creep::initFirstTime = ->
 
 Creep::init = ->
   @withBackoff ->
-    if u.onFreq u.freq.RELOAD
+    freq.onReload =>
       @initFirstTime()
-    logger.trace "init for creep #{@name}", indent: 1
+    logger.trace "init for #{@}", indent: 1
     if @memory.job
-      @memory.job = Job.newFromMem @memory.job
+      @memory.job = Creep.Job.newFromMem @memory.job
     if @memory.role
-      @memory.role = Role.newFromMem @memory.role
+      @memory.role = Role.newFromMem @, @memory.role
 
 
 Creep::pickEdict = ->
@@ -48,6 +77,8 @@ Creep::pickEdict = ->
 
 Creep::tick = ->
   @withBackoff ->
+    logger.trace "tick for #{@}"
+
     if not @job
       @pickEdict()
     if not @task? and @job?
@@ -56,3 +87,7 @@ Creep::tick = ->
       @task.do()
       if @task.isDone()
         @task = null
+
+
+Creep::toString = ->
+  "[Creep n=#{@name}]"

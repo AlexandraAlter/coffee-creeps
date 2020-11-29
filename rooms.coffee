@@ -2,10 +2,17 @@
 
 _ = require 'lodash'
 
-roles = require 'roles'
 Gov = require 'governors'
+
 logger = require 'logger'
-u = require 'utils'
+freq = require 'freq'
+
+
+Room.cleanMemory = ->
+  logger.info 'cleaning rooms'
+  for rName of Memory.rooms
+    if not Game.rooms[rName]?
+      delete Memory.rooms[rName]
 
 
 Room::withBackoff = (func) ->
@@ -26,7 +33,7 @@ Room::withBackoff = (func) ->
 
 
 Room::attachGov = (govCls) ->
-  @memory.governors[govCls.constructor.name] = new govCls @, {}
+  @memory.governors[govCls.name] = new govCls @, {}
 
 
 Room::detatchGov = (govCls) ->
@@ -34,7 +41,7 @@ Room::detatchGov = (govCls) ->
 
 
 Room::initFirstTime = ->
-  logger.info "first time init for #{@}"
+  logger.info "initFirstTime for #{@}"
   @memory = {} unless @memory?
   @memory.governors = {} unless @memory.governors?
   @memory.backoff = 0
@@ -42,35 +49,9 @@ Room::initFirstTime = ->
 
 Room::init = ->
   @withBackoff ->
-    if u.onFreq u.freq.RELOAD
+    freq.onReload =>
       @initFirstTime()
-    logger.trace "room tick for #{@name}", indent: 1
+    logger.trace "init for #{@}"
     for gName, gov of @memory.governors
       @memory.governors[gName] = Gov.newFromMem @, gov
     return
-
-
-# class Room
-#   constructor: (@inner) ->
-#     Object.defineProperty this, 'mem',
-#       get: ->
-#         @inner.mem or (@inner.mem = {})
-
-#   getReqs: ->
-#     @mem.reqs or (@mem.reqs = defaultReqs(@inner))
-
-#   getMissingReqs: ->
-#     if @missing? then return @missing
-
-#     reqs = @getReqs()
-#     creeps = @inner.find FIND_MY_CREEPS
-#     missing = []
-
-#     for name, role of reqs.creeps
-#       if _.find creeps, (c) -> c.name is name
-#         continue
-#       else
-#         missing.push { name, role }
-
-#     return @missing = missing
-

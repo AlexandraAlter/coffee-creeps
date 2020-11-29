@@ -3,34 +3,61 @@
 Gov = require 'governors'
 Edict = require 'edicts'
 Role = require 'roles'
+Task = require 'tasks'
 
 logger = require 'logger'
-
 _ = require 'lodash'
+
+
+class Harvester extends Role
+  @makeNewVariant()
+
+  @selectParts: (maxCost) ->
+    [MOVE, WORK, CARRY]
+
+
+class StaticHarvester extends Harvester
+  @makeNewVariant()
+
+  @selectParts: (maxCost) ->
+    [MOVE, WORK, CARRY]
 
 
 class HarvestEdict extends Edict
   Edict.variants[@name] = @
 
   @filter: (creep) ->
-    true
+    creep.role instanceof Harvester
 
   constructor: (source, opts) ->
     super source, opts
-    { @target } = opts
+    { target: @targetCache, @targetId } = opts
+
+    Object.defineProperty @, 'targetCache',
+      enumerable: false
+
+    if not @targetId
+      @targetId = @targetCache.id
+
+    Object.defineProperty @, 'target',
+      enumerable: false
+      get: ->
+        if @targetCache
+          @targetCache
+        else
+          @targetCache = Game.getObjectById @targetId
+      set: (val) ->
+        @targetCache = val
+        @targetId = val.id
 
 
 class StaticHarvestEdict extends Edict
   Edict.variants[@name] = @
 
   @filter: (creep) ->
-    true
+    creep.role instanceof Harvester
 
   constructor: (opts) ->
-
-
-class Harvester extends Role
-  Role.variants[@name] = @
 
 
 class UpkeepGov extends Gov
@@ -50,22 +77,32 @@ class UpkeepGov extends Gov
     } = opts
 
   tick: ->
+    super()
 
   updateEdicts: ->
-    @edicts = {}
     for source, i in @room.find FIND_SOURCES
-      name = 'harvest ' + i
-      if not @edicts[name]?
-        @edicts[name] =
-          new HarvestEdict @,
-            name: name
-            target: source
-    for i in [1...@harvesters]
-      name = 'new harvester ' + i
-      @edicts[name] =
-        new Edict.CreateCreep @,
-          name: name
-          spec: ''
+      name = 'harvest_' + source.id
+      @makeEdict name, Edict.CreateCreeps,
+        name: name
+        target: source
+
+    if @staticHarvesters
+      num = 0
+      @makeEdict 'createStaticHarvesters', Edict.CreateCreeps,
+        creepName: 'sHarvester'
+        role: StaticHarvester
+        number: num
+        maxWorkers: num
+
+    @makeEdict 'createHarvesters', Edict.CreateCreeps,
+      creepName: 'harvester'
+      priority: Edict.priority.MED
+      maxWorkers: @harvesters
+      type: Edict.type.REPEAT
+      role: Harvester
+      number: @harvesters
+
+    super()
 
 
 module.exports = UpkeepGov

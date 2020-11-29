@@ -3,6 +3,7 @@
 Edict = require 'edicts'
 Base = require 'base'
 
+freq = require 'freq'
 logger = require 'logger'
 
 
@@ -23,7 +24,6 @@ class Gov extends Base
           logger.info "attaching #{govCls}"
           room.attachGov(govCls)
 
-
     delIfRequired: (room) ->
       logger.trace "deleting govs in #{room}"
       for gName, govCls of Gov.variants
@@ -32,22 +32,15 @@ class Gov extends Base
           logger.info "deleting #{govCls}"
           room.detatchGov(govCls)
 
-
   # returns true if the given room requires this governor
   @requiredInRoom: (room, maybeGov) ->
     false
 
-
   @newFromMem: (room, opts) ->
-    try
-      cls = @variants[opts.cls]
-      gov = new cls room, opts
-      logger.trace "reconstituted #{gov}"
-      return gov
-    catch err
-      logger.error 'Gov.newFromMem failed\n', err.stack
-      return
-
+    cls = @variants[opts.cls]
+    gov = new cls room, opts
+    logger.trace "reconstituted #{gov}"
+    return gov
 
   constructor: (@room, opts) ->
     super()
@@ -55,16 +48,14 @@ class Gov extends Base
     Object.defineProperty @, 'room',
       enumerable: false
 
-    {@edicts, @backoff = 0} = opts
+    {@edicts = {}, @backoff = 0} = opts
     Object.defineProperty @, 'backedOff',
+      writable: true
       enumerable: false
       value: false
 
-    @edicts = if @edicts
-      for eName, e of @edicts
-        @edicts[eName] = Edict.newFromMem @, e
-    else {}
-
+    for eName, e of @edicts
+      @edicts[eName] = Edict.newFromMem @, e
 
   withBackoff: (func) ->
     if @backedOff
@@ -77,23 +68,29 @@ class Gov extends Base
       return func.call @
     catch err
       @backoff = 10
-      logger.info "gov backoff for #{@name}"
+      logger.info "gov backoff for #{@cls}"
       throw err
-
 
   initFirstTime: ->
 
-
   tick: ->
     @withBackoff ->
-      logger.trace "gov tick for #{@name}"
-      if u.onFreq u.freq.RELOAD
+      logger.trace "gov tick for #{@cls}"
+      freq.onReload =>
         @initFirstTime()
       return
 
+  makeEdict: (name, edictCls, opts) ->
+    if @edicts[name]
+      for k, v of opts
+        @edicts[name][k] = v
+      @edicts[name].name = name
+    else
+      @edicts[name] = new edictCls @, {name: name, opts...}
 
   updateEdicts: ->
-
+    for eName, edict of @edicts
+      edict.update()
 
   assignEdicts: ->
     @withBackoff ->
@@ -110,10 +107,9 @@ class Gov extends Base
         if not assigned
           logger.trace "could not assign #{edict}", indent: 2
 
-
   toString: ->
     edictNum = Object.keys(@edicts).length
-    "[#{@cls}(n=#{@name}, r=#{@room.name}, e=#{edictNum})]"
+    "[#{@cls} r=#{@room.name} e=#{edictNum}]"
 
 
 module.exports = Gov

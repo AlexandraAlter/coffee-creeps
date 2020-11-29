@@ -1,23 +1,17 @@
 'use strict'
 
 # hotpatching
-creeps = require 'creeps'
-rooms = require 'rooms'
+require 'creeps'
+require 'spawns'
+require 'rooms'
 
-roles = require 'roles'
-tasks = require 'tasks'
-spawns = require 'spawns'
+Role = require 'roles'
+Task = require 'tasks'
+Edict = require 'edicts'
 Gov = require 'governors.all'
-creeps = require 'creeps'
+
 logger = require 'logger'
-u = require 'utils'
-
-
-# ticks:
-# every:
-#   core functionality
-# :
-#   governor
+freq = require 'freq'
 
 
 tick = ->
@@ -26,7 +20,7 @@ tick = ->
   for rName, room of Game.rooms
     room.init()
 
-    if (u.onFreq u.freq.RARELY) or (u.onFreq u.freq.RELOAD)
+    freq.onRareOrReload 0, =>
       logger.info "refreshing govs in #{room}"
       logger.withIndent =>
         Gov.allVariants.delIfRequired room
@@ -35,16 +29,29 @@ tick = ->
     for gName, gov of room.memory.governors
       gov.tick()
       gov.updateEdicts()
+  freq.onRare 1, =>
+    Room.cleanMemory()
 
-  for rName, room of Game.spawns
-    ""
+  for sName, spawn of Game.spawns
+    spawn.init()
+    spawn.tick()
+  freq.onRare 2, =>
+    StructureSpawn.cleanMemory()
 
   for cName, creep of Game.creeps
     creep.init()
     creep.tick()
+  freq.onRare 3, =>
+    Creep.cleanMemory()
 
-  for rName, room of Game.structures
-    ""
+  freq.onDebug =>
+    tools = require 'tools'
+    for n, t of tools
+      Game[n] = t
+    Game.Role = Role
+    Game.Task = Task
+    Game.Edict = Edict
+    Game.Gov = Gov
 
 
 module.exports.loop = tick
