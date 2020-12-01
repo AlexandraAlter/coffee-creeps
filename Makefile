@@ -1,17 +1,27 @@
 
 .PHONY: build buildAll upload clean
 
-src = $(shell find . -type f -name '*.coffee')
-build = $(patsubst ./%.coffee, dist/%.js, $(src))
+coffeeSrc = $(shell find . -type f -name '*.coffee')
+coffeeBuild = $(patsubst ./%.coffee, dist/%.js, $(src))
 
-build: buildAll upload
+nimSrc = $(shell find . -type f -name '*.nim')
+nimBuild = 'dist/nim.js'
 
-buildAll: $(src)
+rustSrc = $(shell find . -type f -name '*.rs')
+rustBuild = 'dist/rust_creeps.js'
+
+build: buildCoffee buildNim buildRust upload
+
+buildCoffee: $(coffeeSrc)
 	coffee -o dist -c coffee/*.coffee
+
+buildNim: $(nimSrc)
 	nim js -d:nodejs -o:dist/nim.js nim/main.nim
+
+buildRust: $(rustSrc)
 	wasm-pack build --out-dir dist --target nodejs
 
-$(build): buildAll
+$(coffeeBuild) $(nimBuild) $(rustBuild): buildAll
 
 upload:
 	grunt screeps

@@ -1,5 +1,5 @@
 [package]
-name = "coffee-creeps"
+name = "rust-creeps"
 version = "0.1.0"
 authors = ["AlexandraAlter"]
 edition = "2018"
