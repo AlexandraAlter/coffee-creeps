@@ -15,6 +15,7 @@ freq.V_RARELY = 500
 freq.RELOAD = Symbol('reload')
 freq.SAFETY = Symbol('safety')
 freq.DEBUG = Symbol('debug')
+freq.TEST = Symbol('test')
 
 
 logger.info 'reloading'
@@ -22,6 +23,7 @@ firstLoadTime = Game.time
 
 safety = on
 debug = on
+test = on
 
 
 freq.is = (fq, offset = 0) ->
@@ -35,14 +37,13 @@ freq.is = (fq, offset = 0) ->
     safety
   else if fq is freq.DEBUG
     debug
+  else if fq is freq.TEST
+    test
   else
     throw new Error 'invalid frequency'
 
 
 freq.on = (fq, offset = 0, func) ->
-  if typeof offset is 'function'
-    func = offset
-    offset = 0
   if freq.is fq, offset
     func()
 
@@ -52,24 +53,24 @@ freq.onEither = (fq1, fq2, offset = 0, func) ->
     func()
 
 
-freq.onEvery = (offset = 0, func) -> freq.on freq.EVERY, offset, func
-freq.onEveryOther = (offset = 0, func) -> freq.on freq.E_OTHER, offset, func
-freq.onSome = (offset = 0, func) -> freq.on freq.SOME, offset, func
-freq.onOccasion = (offset = 0, func) -> freq.on freq.OCC, offset, func
-freq.onRare = (offset = 0, func) -> freq.on freq.RARELY, offset, func
-freq.onVRare = (offset = 0, func) -> freq.on freq.V_RARELY, offset, func
-freq.onReload = (func) -> freq.on freq.RELOAD, 0, func
-freq.onSafety = (func) -> freq.on freq.SAFETY, 0, func
-freq.onDebug = (func) -> freq.on freq.DEBUG, 0, func
+# (offset, func)
+freq.onEvery = freq.on.bind freq.EVERY
+freq.onEveryOther = freq.on.bind freq.E_OTHER
+freq.onSome = freq.on.bind freq.SOME
+freq.onOccasion = freq.on.bind freq.OCC
+freq.onRare = freq.on.bind freq.RARELY
+freq.onVRare = freq.on.bind freq.V_RARELY
+# (func)
+freq.onReload = freq.on.bind freq.RELOAD, 0
+freq.onSafety = freq.on.bind freq.SAFETY, 0
+freq.onDebug = freq.on.bind freq.DEBUG, 0
+freq.onTest = freq.on.bind freq.TEST, 0
 
-freq.onSomeOrReload = (offset = 0, func) ->
-  freq.onEither freq.SOME, freq.RELOAD, offset, func
-freq.onOccasionOrReload = (offset = 0, func) ->
-  freq.onEither freq.OCC, freq.RELOAD, offset, func
-freq.onRareOrReload = (offset = 0, func) ->
-  freq.onEither freq.RARELY, freq.RELOAD, offset, func
-freq.onVRareOrReload = (offset = 0, func) ->
-  freq.onEither freq.V_RARELY, freq.RELOAD, offset, func
+# (offset, func)
+freq.onSomeOrReload = freq.onEither.bind freq.SOME, freq.RELOAD
+freq.onOccasionOrReload = freq.onEither.bind freq.OCC, freq.RELOAD
+freq.onRareOrReload = freq.onEither.bind freq.RARELY, freq.RELOAD
+freq.onVRareOrReload = freq.onEither.bind freq.V_RARELY, freq.RELOAD
 
 
 module.exports = freq
