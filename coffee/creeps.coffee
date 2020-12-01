@@ -40,9 +40,10 @@ Creep.cleanMemory = ->
 
 
 Creep::backoff = (dur, reason = null) ->
-  @memory.backoff = dur
-  reasonStr = if reason? and reason then " because: #{reason}" else ""
-  logger.info l"#{@} backing off for #{dur}#{reasonStr}"
+  if @memory.backoff is 0
+    @memory.backoff = dur
+    reasonStr = if reason? and reason then " because: #{reason}" else ""
+    logger.warn l"#{@} backing off for #{dur}#{reasonStr}"
 
 
 Creep::withBackoff = (func) ->
@@ -89,6 +90,7 @@ Creep::findEdict = ->
 Creep::fail = ->
   @edict.fail @
   @memory.task = null
+  @memory.state = null
   @memory.edictRef = null
   @backoff 20
 
@@ -96,6 +98,7 @@ Creep::fail = ->
 Creep::complete = ->
   @edict.complete @
   @memory.task = null
+  @memory.state = null
   @memory.edictRef = null
 
 
@@ -107,7 +110,9 @@ Creep::tick = ->
     if @memory.edictRef
       @edict = Edict.newFromRef @memory.edictRef
     if @memory.task
-      @memory.task = Task.newFromMem @, @memory.task
+      @memory.task = Task.newFromMem @memory.task
+    if @memory.state
+      @memory.state = Task.TaskState.newFromMem @, @memory.state
 
     if not @edict
       edict = @findEdict()
@@ -115,7 +120,8 @@ Creep::tick = ->
         @memory.edictRef = edict.toRef()
         @edict = edict
         if edict instanceof Edict.RunTask
-          @memory.task = edict.makeTask @
+          @memory.task = edict.makeTask()
+          @memory.state = @memory.task.newState @
         @edict.start @
         logger.info l"#{@} starting #{@memory.edictRef}"
       else
@@ -123,12 +129,11 @@ Creep::tick = ->
 
     if @memory.task
       try
-        @edict.task.do @memory.task
+        @memory.task.do @memory.state
       catch err
         @fail()
-        logger.error l"#{@} failed task"
         throw err
-      if @edict.task.isDone @memory.task
+      if @memory.task.isDone @memory.state
         @complete()
 
 

@@ -102,14 +102,14 @@ class UpkeepGov extends Gov
       role: Harvester
       number: @harvesters
 
-    for spawn, i in @room.find FIND_MY_SPAWNS
-      @makeEdict 'fillSpawner' + spawn.name, Edict.RunTask,
-        task: Task.Refill
-        taskOpts:
-          target: spawn.id
-        priority: Edict.priority.MED
-        maxWorkers: 1
-        type: Edict.type.REPEAT
+    # for spawn, i in @room.find FIND_MY_SPAWNS
+    #   @makeEdict 'fillSpawner' + spawn.name, Edict.RunTask,
+    #     task: Task.Refill
+    #     taskOpts:
+    #       target: spawn.id
+    #     priority: Edict.priority.MED
+    #     maxWorkers: 1
+    #     type: Edict.type.REPEAT
 
     @makeEdict 'fillController', Edict.RunTask,
       task: Task.Refill

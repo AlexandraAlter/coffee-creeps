@@ -82,7 +82,7 @@ class Edict extends Base
     Object.defineProperty @, 'source', enumerable: false
 
   toString: ->
-    "[#{@cls} #{@status} #{@type} " +
+    "[#{@cls}@#{@name} #{@status} #{@type} " +
       "#{@completions}+#{@curWorkers}/#{@maxWorkers}]"
 
   toRef: ->
@@ -202,8 +202,8 @@ class Edict.RunTask extends Edict
     if typeof @task is 'string'
       @task = Task.clsFromMem @task
 
-  makeTask: (creep) ->
-    new @task creep, @taskOpts
+  makeTask: ->
+    new @task @taskOpts
 
   clean: ->
     ref = @toRef()
@@ -214,6 +214,9 @@ class Edict.RunTask extends Edict
     if count isnt @curWorkers
       logger.warn "#{@} has mismatched workers, #{count} not #{@curWorkers}"
       @curWorkers = count
+
+  toString: ->
+    super().slice(0, -1) + " #{@task}]"
 
 
 module.exports = Edict
