@@ -111,10 +111,16 @@ class UpkeepGov extends Gov
     #     maxWorkers: 1
     #     type: Edict.type.REPEAT
 
+    # @makeEdict 'fillController', Edict.RunTask,
+    #   task: Task.Refill
+    #   taskOpts:
+    #     target: @room.controller.id
+    #   priority: Edict.priority.MED
+    #   maxWorkers: 1
+    #   type: Edict.type.REPEAT
+
     @makeEdict 'fillController', Edict.RunTask,
-      task: Task.Refill
-      taskOpts:
-        target: @room.controller.id
+      task: Task.Test
       priority: Edict.priority.MED
       maxWorkers: 1
       type: Edict.type.REPEAT

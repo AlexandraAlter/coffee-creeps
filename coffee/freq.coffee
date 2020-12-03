@@ -54,23 +54,23 @@ freq.onEither = (fq1, fq2, offset = 0, func) ->
 
 
 # (offset, func)
-freq.onEvery = freq.on.bind freq.EVERY
-freq.onEveryOther = freq.on.bind freq.E_OTHER
-freq.onSome = freq.on.bind freq.SOME
-freq.onOccasion = freq.on.bind freq.OCC
-freq.onRare = freq.on.bind freq.RARELY
-freq.onVRare = freq.on.bind freq.V_RARELY
+freq.onEvery =      freq.on.bind null, freq.EVERY
+freq.onEveryOther = freq.on.bind null, freq.E_OTHER
+freq.onSome =       freq.on.bind null, freq.SOME
+freq.onOccasion =   freq.on.bind null, freq.OCC
+freq.onRare =       freq.on.bind null, freq.RARELY
+freq.onVRare =      freq.on.bind null, freq.V_RARELY
 # (func)
-freq.onReload = freq.on.bind freq.RELOAD, 0
-freq.onSafety = freq.on.bind freq.SAFETY, 0
-freq.onDebug = freq.on.bind freq.DEBUG, 0
-freq.onTest = freq.on.bind freq.TEST, 0
+freq.onReload = freq.on.bind null, freq.RELOAD, 0
+freq.onSafety = freq.on.bind null, freq.SAFETY, 0
+freq.onDebug =  freq.on.bind null, freq.DEBUG, 0
+freq.onTest =   freq.on.bind null, freq.TEST, 0
 
 # (offset, func)
-freq.onSomeOrReload = freq.onEither.bind freq.SOME, freq.RELOAD
-freq.onOccasionOrReload = freq.onEither.bind freq.OCC, freq.RELOAD
-freq.onRareOrReload = freq.onEither.bind freq.RARELY, freq.RELOAD
-freq.onVRareOrReload = freq.onEither.bind freq.V_RARELY, freq.RELOAD
+freq.onSomeOrReload =     freq.onEither.bind null, freq.SOME, freq.RELOAD
+freq.onOccasionOrReload = freq.onEither.bind null, freq.OCC, freq.RELOAD
+freq.onRareOrReload =     freq.onEither.bind null, freq.RARELY, freq.RELOAD
+freq.onVRareOrReload =    freq.onEither.bind null, freq.V_RARELY, freq.RELOAD
 
 
 module.exports = freq

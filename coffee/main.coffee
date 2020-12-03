@@ -9,6 +9,7 @@ Role = require 'roles'
 Task = require 'tasks'
 Edict = require 'edicts'
 Gov = require 'governors.all'
+CAsm = require 'casm'
 
 logger = require 'logger'
 l = logger.fmt
@@ -47,14 +48,13 @@ tick = ->
   freq.onRare 3, =>
     Creep.cleanMemory()
 
-  freq.onDebug =>
-    tools = require 'tools'
-    for n, t of tools
-      Game[n] = t
-    Game.Role = Role
-    Game.Task = Task
-    Game.Edict = Edict
-    Game.Gov = Gov
+
+global.tools = require 'tools'
+global.Role = Role
+global.CAsm = CAsm
+global.Task = Task
+global.Edict = Edict
+global.Gov = Gov
 
 
 module.exports.loop = tick

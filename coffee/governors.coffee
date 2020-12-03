@@ -7,7 +7,7 @@ freq = require 'freq'
 logger = require 'logger'
 
 
-class Gov extends Base
+class Gov extends Base.WithCls
   @variants: {}
 
   @makeNewVariant: ->

@@ -6,7 +6,7 @@ l = logger.fmt
 _ = require 'lodash'
 
 
-class Role extends Base
+class Role extends Base.WithCls
   @variants = {}
 
   @makeNewVariant: ->

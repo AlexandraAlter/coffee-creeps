@@ -34,7 +34,7 @@ priority =
   XTRM: 7
 
 
-class Edict extends Base
+class Edict extends Base.WithCls
   @variants: {}
 
   @makeNewVariant: ->

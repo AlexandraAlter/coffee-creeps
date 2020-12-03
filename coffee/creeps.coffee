@@ -9,7 +9,7 @@ l = logger.fmt
 freq = require 'freq'
 
 
-class Creep.Job extends Base
+class Creep.Job extends Base.WithCls
   @newFromMem: (room, opts) ->
     gName = opts.edict.source
     id = opts.edict.id
@@ -64,9 +64,9 @@ Creep::initFirstTime = ->
   logger.info "initFirstTime for #{@}"
   @memory = {} if not @memory?
   @memory.job = undefined
-  @memory.task = null if not @memory.task?
-  @memory.role = null if not @memory.role?
-  @memory.backoff = 0 if not @memory.backoff?
+  @memory.task ?= null
+  @memory.role ?= null
+  @memory.backoff ?= 0
 
 
 Creep::init = ->
@@ -129,12 +129,17 @@ Creep::tick = ->
 
     if @memory.task
       try
-        @memory.task.do @memory.state
+        res = @memory.task.do @memory.state
+        @backoff 3
+        logger.debug l"#{@} got #{res}"
+        if not res.isValidToplevel()
+          throw Error 'invalid toplevel task'
+        else if res.adv is 0
+        else
+          @complete()
       catch err
         @fail()
         throw err
-      if @memory.task.isDone @memory.state
-        @complete()
 
 
 Creep::toString = ->

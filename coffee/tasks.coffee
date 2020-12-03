@@ -1,13 +1,18 @@
 'use strict'
 
 Base = require 'base'
+CAsm = require 'casm'
+Op = CAsm.Op
+Cond = CAsm.Cond
+Label = CAsm.Label
 logger = require 'logger'
 l = logger.fmt
 freq = require 'freq'
 
 
-class Res
+class Res extends Base
   constructor: (@name, opts) ->
+    super()
     opts = opts or {}
     { @adv = null,
       @imm = false,
@@ -16,90 +21,68 @@ class Res
       @unimpl = false,
     } = opts
 
+  isValid: ->
+    if @unimpl
+      throw Error 'unimplemented stage'
+    freq.onSafety =>
+      return (@adv isnt null) or (@skipTask isnt false) or (@abort isnt false)
+    return true
+
+  isValidToplevel: ->
+    @isValid() and (@adv isnt null) and (@imm is false) and
+      (@skipTask is false) and (@abort is false) and (@unimpl is false)
+
   toString: ->
-    "[Res #{@name} adv=#{@adv} imm=#{@imm} 
-    skipTask=#{@skipTask} abort=#{@abort} unimpl=#{@unimpl}]"
+    msg = super().slice(0, -1) + " #{@name}"
+    if @adv isnt null then msg += " adv=#{@adv}"
+    if @imm then msg += ' imm'
+    if @skipTask then msg += ' skipTask'
+    if @abort then msg += ' abort'
+    if @unimpl then msg += ' unimpl'
+    return msg + ']'
 
-  Again: new Res 'again', adv: 0
-  AgainImm: new Res 'again', adv: 0, imm: true
+  @Again: new Res 'again', adv: 0
+  @AgainImm: new Res 'again', adv: 0, imm: true
 
-  Next: new Res 'next', adv: 1
-  NextImm: new Res 'next_imm', adv: 1, imm: true
+  @Next: new Res 'next', adv: 1
+  @NextImm: new Res 'next_imm', adv: 1, imm: true
+  @SkippedTask: (res) -> new Res 'skipped_task',
+    adv: 1
+    imm: res.imm
+    abort: res.abort
 
-  Skip: (count) -> new Res 'skip', adv: count + 1
-  Skip1: Res.Skip 1
-  SkipImml: (count) -> new Res 'skip', adv: count + 1, imm: true
-  SkipImml1: Res.SkipImml 1
+  @Skip: (count) -> new Res 'skip', adv: count + 1
+  @Skip1: Res.Skip 1
+  @SkipImml: (count) -> new Res 'skip', adv: count + 1, imm: true
+  @SkipImml1: Res.SkipImml 1
 
-  SkipTask: (count) -> new Res 'skip', skipTask: true
-  SkipTaskImm: (count) -> new Res 'skip', skipTask: true, imm: true
+  @SkipTask: (count) -> new Res 'skip', skipTask: true
+  @SkipTaskImm: (count) -> new Res 'skip', skipTask: true, imm: true
 
-  Abort: new Res 'abort', abort: true
+  @Abort: new Res 'abort', abort: true
 
-  Unimpl: new Res 'unimpl', unimpl: true
+  @Unimpl: new Res 'unimpl', unimpl: true
 
 
-class TaskState
-  @toString: ->
-    "[class #{@name}]"
-
+class TaskState extends Base
   @newFromMem: (creep, vals) ->
     state = new TaskState creep, vals
     logger.trace l"reconstituted #{state}"
     return state
 
   constructor: (@creep, vals) ->
+    super()
     Object.assign @, vals
-    Object.defineProperty @, 'creep',
-      enumerable: false
-    # Object.defineProperty @, 'blocked',
-    #   enumerable: false
-    #   writable: true
-    #   value: false
-    # Object.defineProperty @, 'continuing',
-    #   enumerable: false
-    #   writable: true
-    #   value: false
-    # Object.defineProperty @, 'stageOffset',
-    #   enumerable: false
-    #   writable: true
+    Object.defineProperty @, 'creep'
     @stage = 0 if not @stage?
-
-  # init: ->
-    # @blocked = false
-    # @continuing = false
-    # @stageOffset = null
 
   advance: (count) -> @stage += count
 
-  # handleRes: (res) ->
-  #   if res is Res.AGAIN
-  #     @blocked = true
-  #     0
-  #   else if res is Res.NEXT
-  #     @blocked = true
-  #     @changeStage 1
-  #   else if res is Res.NEXT_IMM
-  #     @continuing = true
-  #     @changeStage 1
-  #   else if res > 0
-  #     @continuing = true
-  #     @changeStage res
-  #     return res
-  #   else if res is Res.SKIP_SUBTASK
-  #     throw Error "SKIP_SUBTASK isn't implemented yet"
-  #   else if res is Res.SKIP_SUBTASK_IMM
-  #     throw Error "SKIP_SUBTASK_IMM isn't implemented yet"
-  #   else if res is Res.UNIMPL
-  #     throw Error "hit unimplemented method for #{@}"
-  #   else
-  #     throw Error "unknown task result #{res} for #{@}"
-
   toString: ->
-    "[#{@constructor.name} c=#{@creep} s=#{@stage}]"
+    super().slice(0, -1) + " c=#{@creep} s=#{@stage}]"
 
 
-class Task extends Base
+class Task extends Base.WithCls
   @variants = {}
 
   @makeNewVariant: ->
@@ -109,19 +92,15 @@ class Task extends Base
   @Res: Res
   @TaskState: TaskState
 
-  @subtasks: null
-  @stages: 1
+  @subtasks: []
+  @stages: 0
 
   @stagesFromSubtasks: ->
-    ownTasks = 0
     _.sum(
       for sub in @subtasks
-        if typeof sub is 'function'
-          1
-        else if sub instanceof Task
-          sub.stages
-        else
-          throw Error "invalid type in subtasks: #{sub}"
+        if typeof sub is 'function' then 1
+        else if sub instanceof Task then sub.stages
+        else throw Error "invalid type in subtasks: #{sub}"
     )
 
   @clsFromMem: (str) ->
@@ -138,10 +117,8 @@ class Task extends Base
   Object.defineProperties @prototype,
     stages:
       get: -> @constructor.stages
-      enumerable: false
     subtasks:
       get: -> @constructor.subtasks
-      enumerable: false
 
   constructor: (opts) ->
     super()
@@ -150,98 +127,138 @@ class Task extends Base
 
   init: (state) ->
 
-  getSubtaskIndexes: (stage) ->
-    counter = 0
+  logWork: (state, stage, res) ->
+    logger.info l"completed #{@}.#{stage} on #{state} with #{res}"
 
+  getSubtask: (stage) ->
+    counter = 0
+    # logger.debug "getSubTask for #{@}.#{stage}"
     for task, index in @subtasks
       isFunc = typeof task is 'function'
-      if stage <= counter
-        return [index, counter]
-      else
-        counter += if isFunc then 1 else task.stages
+      hasTasks = if isFunc then true else (task.stages isnt 0)
+      inc = if isFunc then 1 else task.stages
+      if stage < counter + inc and hasTasks
+        # logger.debug "getSubTask found #{index} for #{counter}"
+        subtask = @subtasks[index]
+        if not ((typeof subtask is 'function') or (subtask instanceof Task))
+          throw Error "unknown type of task #{task}"
+        return [subtask, index, counter]
+      counter += inc
+    return [null, null, null]
 
-    return [null, null]
+  doPrelude: (state, stage) ->
+    if Game.cpu.getUsed() > Game.cpu.tickLimit / 2
+      throw Error 'high cpu emergency break'
+    if stage > @stages
+      throw Error 'extended past last stage'
+    if stage is @stages
+      logger.warn 'end of tasks'
+      return Res.NextImm
 
-  doSubTask: (state, stage, task, offset) ->
-    res = null
+    return null
 
-    if not task
-      throw Error "could not find task in #{@}.#{stage} with #{state}"
-    else if typeof task is 'function'
-      res = task.call @, state
-      logger.trace l"#{@}.#{stage} on #{state} completed with #{res}"
-    else if task instanceof Task
-      res = task.do state, offset
+  doOnce: (state, offset) ->
+    stage = state.stage - offset
+
+    if (res = @doPrelude state, stage) isnt null then return res
+
+    [subtask, index, innerOffset] = @getSubtask stage
+    if subtask is null
+      throw Error "could not find task using s=#{stage}"
+
+    if subtask instanceof Task
+      res = subtask.do state, innerOffset
     else
-      throw Error "unknown type of task #{task}"
+      res = subtask.call @, state
+      @logWork state, stage, res
+    # logger.debug "call in #{@}.#{stage} returned #{res}"
+
+    stage = state.stage - offset
+
+    @doPrologue state, stage, index, res
 
     return res
 
-  doWork: (state, stage) ->
-    logger.info l"#{@}.#{stage} running on #{state}"
-    return Res.Unimpl
+  doPrologue: (state, stage, index, res) ->
+    if res not instanceof Res
+      throw Error 'no result returned'
+    if not res.isValid()
+      throw Error 'invalid result returned'
+
+    if res.skipTask
+      stageDiff = @stages - stage
+      state.advance stageDiff
+      res = Res.SkippedTask res
+
+    if res.adv isnt null
+      nextStage = stage + res.adv
+      [nextTask, nextIndex, nextOffset] = @getSubtask nextStage
+      # do not advance past the end of this task
+      if nextStage > @stages
+        throw Error "advanced past end to #{state}"
+      # do not advance over the bounds of a subtask
+      else if nextTask isnt null and (nextIndex - index > 1)
+        throw Error "bad skip to #{stage}"
+      # if we're advancing to the end of this task, return
+      # let the caller do the increment
+      else if nextStage is @stages
+        return res
+      else
+        state.advance res.adv
 
   do: (state, offset = 0) ->
     infCounter = 0
-    @init state
+    try
+      @init state
+    catch e
+      if not e.task?
+        e.message += " in #{@}.init with #{state}"
+        e.task = @
+      throw e
     loop
       stage = state.stage - offset
       res = null
 
-      infCounter++
-      if infCounter > 5
-        throw Error "probable infinite loop in #{@} with #{state}"
-      if Game.cpu.getUsed() > Game.cpu.tickLimit / 2
-        throw Error "high cpu emergency break"
+      try
+        infCounter++
+        if infCounter > 3
+          throw Error "probable infinite loop"
 
-      if stage >= @stages
-        throw Error "extended past last stage in #{@}.#{stage} with #{state}"
-      else if @subtasks isnt null
-        [subIndex, subOffset] = @getSubtaskIndexes stage
-        subtask = @subtasks[subIndex]
-        res = @doSubTask state, stage, subtask, subOffset
-      else
-        res = @doWork state, stage
+        res = @doOnce state, offset
+        # logger.debug "doOnce in #{@} returned #{res}"
 
-      if not res instanceof Res
-        throw Error "no result returned in #{@} with #{state}"
-
-      else if res.unimpl
-        throw Error "unimplemented stage in #{@} with #{state}"
-
-      else if res.skipTask
-        # skip to the end of the task
-        stageDiff = @stages - stage
-        state.advance stageDiff
-
-      else if res.adv isnt null
-        nextStage = stage + res.adv
-        [nextIndex, nextOffset] = @getSubtaskIndexes nextStage
-        # do not advance past the end of this task
-        if nextStage > @stages
-          throw Error "advanced past end in #{@}.#{stage} with #{state}"
-        # do not advance over the bounds of a subtask
-        else if subIndex and (nextIndex - subIndex > 1)
-          throw Error "bad skip in #{@}.#{stage} with #{state}"
-        # if we're advancing to the end of this task, return
-        # let the caller do the increment
-        else if nextStage is @stages
-          return res
-        else
-          state.advance res.adv
-
-      else
-        throw Error "result did not advance in #{@} with #{state}"
+      catch e
+        if not e.task?
+          e.message += " in #{@}.#{stage} with #{state}"
+          e.task = @
+        throw e
 
       if res.imm
         continue
       else
         return Res.Again
+
     throw Error "reached an unreachable statement in #{@} with #{state}"
 
 
 class Task.Move extends Task
   @makeNewVariant()
+
+  @subtasks: [
+    (state) ->
+      logger.debug "Debug Move action"
+      return Res.Next
+  ]
+  @stages: do => @stagesFromSubtasks()
+
+  @casm: new CAsm 'move', [
+    new Op.GetObject 'targetid', 'target'
+    new Label 'inner'
+    new Op.Move 'target'
+    new Op.IsNextTo 'target'
+    new Op.Branch -2, cond: Cond.False
+    new Op.Halt
+  ]
 
   constructor: (opts) ->
     super opts
@@ -256,11 +273,9 @@ class Task.Move extends Task
     if not state[@cacheName]?
       Object.defineProperty state, @cacheName,
         value: Game.getObjectById state[@idName]
-        enumerable: false
 
   doWork: (state, stage) ->
     super()
-    logger.debug "Move"
     res = state.creep.moveTo state[@cacheName]
     if res isnt OK
       logger.warn l"#{state.creep} failed to move with #{res}"
@@ -299,7 +314,6 @@ class Task.GetEnergy extends Task
     if not state.targetCache?
       Object.defineProperty state, 'targetCache',
         value: Game.getObjectById state.targetId
-        enumerable: false
 
 
 class Task.Refill extends Task
@@ -314,7 +328,23 @@ class Task.Refill extends Task
     if not state.targetCache?
       Object.defineProperty state, 'targetCache',
         value: Game.getObjectById state.targetId
-        enumerable: false
+
+
+class Task.Test extends Task
+  @makeNewVariant()
+
+  @subtasks: [
+    (state) ->
+      logger.debug 'Task.Test.0'
+      return Res.Next
+    (state) ->
+      logger.debug 'Task.Test.1'
+      return Res.Next
+    (state) ->
+      logger.debug 'Task.Test.2'
+      return Res.Next
+  ]
+  @stages: do => @stagesFromSubtasks()
 
 
 module.exports = Task
