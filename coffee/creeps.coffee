@@ -2,7 +2,7 @@
 
 Base = require 'base'
 Role = require 'roles'
-Task = require 'tasks'
+casm = require 'casm'
 Edict = require 'edicts'
 logger = require 'logger'
 l = logger.fmt
@@ -32,11 +32,8 @@ class Creep.Job extends Base.WithCls
   }
 
 
-Creep.cleanMemory = ->
-  logger.info 'cleaning creeps'
-  for cName of Memory.creeps
-    if not Game.creeps[cName]?
-      delete Memory.creeps[cName]
+Creep::toString = ->
+  "[Creep n=#{@name}]"
 
 
 Creep::backoff = (dur, reason = null) ->
@@ -119,19 +116,18 @@ Creep::tick = ->
       if edict
         @memory.edictRef = edict.toRef()
         @edict = edict
-        if edict instanceof Edict.RunTask
-          @memory.task = edict.makeTask()
-          @memory.state = @memory.task.newState @
+        if edict instanceof CAsm.Task
+          edict.apply @
+        else
+          throw Error 'creep given non-CAsm Task edict'
         @edict.start @
         logger.info l"#{@} starting #{@memory.edictRef}"
       else
         @backoff 20, 'cannot find a job'
 
-    if @memory.task
+    if @memory.taskRef
       try
         res = @memory.task.do @memory.state
-        @backoff 3
-        logger.debug l"#{@} got #{res}"
         if not res.isValidToplevel()
           throw Error 'invalid toplevel task'
         else if res.adv is 0
@@ -142,5 +138,26 @@ Creep::tick = ->
         throw err
 
 
-Creep::toString = ->
-  "[Creep n=#{@name}]"
+cleanMemory = ->
+  logger.info 'cleaning creeps'
+  for cName of Memory.creeps
+    if not Game.creeps[cName]?
+      delete Memory.creeps[cName]
+
+
+tick = ->
+  for cName, creep of Game.creeps
+    creep.init()
+    creep.tick()
+  freq.onRare 3, =>
+    cleanMemory()
+
+
+module.exports = {
+  Base
+  Role
+  CAsm
+  Edict
+  cleanMemory
+  tick
+}

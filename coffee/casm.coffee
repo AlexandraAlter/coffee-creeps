@@ -1,6 +1,7 @@
 'use strict'
 
 Base = require 'base'
+Edict = require 'edicts'
 logger = require 'logger'
 l = logger.fmt
 _ = require 'lodash'
@@ -23,13 +24,21 @@ class CAsm extends Base
       else if o instanceof Label
         labels.push [o.name, counter]
     for [start, end, casm] in maps
+      labels.push [casm.name, start]
       for [label, offset] in casm.labels
         labels.push [casm.name + '.' + label, start + offset]
     return labels
 
-  @extractMaps: (ops) ->
+  @extractIncludes: (ops) ->
+    myIncludes = (o.casm for o in ops when o instanceof Include)
+    for i in myIncludes
+      if not i instanceof CAsm
+        throw Error 'including a non-CAsm'
+    includes = _.flatten(i.includes for i in myIncludes)
+    _.uniq(includes)
+
+  @extractMaps: (ops, includes) ->
     freeIndex = 1 + @countOps ops
-    includes = (o.casm for o in ops when o instanceof Include)
     ([freeIndex, freeIndex += i.ops.length, i] for i in includes)
 
   @rebaseOps: (ops, labels, maps) ->
@@ -38,7 +47,8 @@ class CAsm extends Base
   constructor: (@name, ops) ->
     super()
     CAsm.verifyOps ops
-    @maps = CAsm.extractMaps ops
+    @includes = CAsm.extractIncludes ops
+    @maps = CAsm.extractMaps ops, @includes
     @labels = CAsm.extractLabels ops, @maps
     @ops = CAsm.rebaseOps ops, @labels, @maps
 
@@ -69,8 +79,8 @@ class CAsm extends Base
 
 
 class ExecState extends Base
-  @newFromMem: (creep, vals) ->
-    state = new TaskState creep, vals
+  @newFromMem: (vals) ->
+    state = new ExecState vals
     logger.trace l"reconstituted #{state}"
     return state
 
@@ -107,19 +117,10 @@ class Include extends Base
 
 
 class Cond extends Base
-  # @Eq: new Cond 'equal',         (ex) -> ex.eq
-  # @Ne: new Cond 'not-equal',     (ex) -> not ex.eq
   @Mi: new Cond 'negative',      (ex) -> not ex.test
   @Pl: new Cond 'positive/zero', (ex) -> ex.test
-
   @True: @Pl
   @False: @Mi
-
-  # @Ge: new Cond 'greater/equal', (ex) -> ex.eq or ex.gt
-  # @Lt: new Cond 'less-than',     (ex) -> ex.lt
-  # @Gt: new Cond 'greater/than',  (ex) -> ex.gt
-  # @Le: new Cond 'less/equal',    (ex) -> ex.eq or ex.lt
-
   @Al: new Cond 'always',        (ex) -> true
 
   constructor: (@name, @func) -> super()
@@ -145,6 +146,7 @@ class Op.Nop extends Op
 
 
 # arbitrary code
+
 class Op.Func extends Op
   constructor: (@func, opts) -> super(opts)
   call: (ex, creep) ->
@@ -152,6 +154,7 @@ class Op.Func extends Op
 
 
 # stack manipulation
+
 class Op.Pop extends Op
   constructor: (@reg, opts) -> super(opts)
   call: (ex, creep) ->
@@ -165,53 +168,60 @@ class Op.Push extends Op
 
 
 # branching
+
 class Op.Branch extends Op
-  constructor: (@offset, opts) -> super(opts)
+  constructor: (opts) ->
+    super(opts)
+    {@reg = null, @offset = null, @label = null, @link = false} = opts
+    if not @reg? and not @offset? and not @label?
+      throw Error 'must provide a reg, offset, or label'
+    @ex = @reg?
   call: (ex, creep) ->
-    ex.pc += @offset
+    if @link
+      ex.lr = ex.pc + 1
+    if @ex
+      ex.pc = ex[@reg]
+    else
+      ex.pc += @offset
 
 
-class Op.BranchL extends Op
-  constructor: (@offset, opts) -> super(opts)
+class Op.Yield extends Op
+  constructor: (opts) -> super(opts)
   call: (ex, creep) ->
-    ex.lr = ex.pc + 1
-    ex.pc += @offset
-
-
-class Op.BranchX extends Op
-  constructor: (@target, opts) -> super(opts)
-  call: (ex, creep) ->
-    ex.setPc ex[@target]
-
-
-class Op.BranchLX extends Op
-  constructor: (@target, opts) -> super(opts)
-  call: (ex, creep) ->
-    ex.lr = ex.pc + 1
-    ex.setPc ex[@target]
-
-
-class Op.BranchLabel extends Op
-  constructor: (@label, opts) -> super(opts)
-  call: (ex, creep) ->
-    throw Error 'Op.BranchLabel remained in the code'
+    ex.yield = true
 
 
 class Op.Halt extends Op
-  constructor: (@label, opts) -> super(opts)
+  constructor: (opts) -> super(opts)
   call: (ex, creep) ->
     ex.yield = true
     ex.halt = true
 
 
 # data manipulation
+
+
+class Op.Set extends Op
+  constructor: (@reg, @value) -> super()
+  call: (ex, creep) ->
+    if @value?
+      ex[@reg] = @value
+    else
+      delete ex[@reg]
+
+
+class Op.Copy extends Op
+  constructor: (@reg1, @reg2) -> super()
+  call: (ex, creep) ->
+    ex[@reg2] = ex[@reg1]
+
+
 class Op.GetObject extends Op
   constructor: (@idReg, @outReg) -> super()
   call: (ex, creep) ->
     if ex[@outReg]?
       return
-    Object.defineProperty ex, @outReg,
-      value: Game.getObjectById ex[@idReg]
+    Object.defineProperty ex, @outReg, value: Game.getObjectById ex[@idReg]
 
 
 class Op.Move extends Op
@@ -223,6 +233,7 @@ class Op.Move extends Op
     ex.res = res
     ex.yield = true
 
+
 # predicates
 
 class Op.IsNextTo extends Op
@@ -232,9 +243,39 @@ class Op.IsNextTo extends Op
     @test = state.creep.pos.getRangeTo(state.target) <= 1
 
 
-CAsm.ExecState = ExecState
-CAsm.Op = Op
-CAsm.Cond = Cond
-CAsm.Label = Label
+class Task extends Edict
+  @makeNewVariant()
 
-module.exports = CAsm
+  @casm: new CAsm '', []
+
+  constructor: (source, opts) ->
+    super source, opts
+    {@params = {}} = opts
+
+  apply: (creep) ->
+    creep.memory.taskRef = @cls
+    creep.memory.state = new ExecState @params
+
+  clean: ->
+    ref = @toRef()
+    count = 0
+    for cName, creep of Game.creeps
+      if creep.memory.edictRef is ref
+        count += 1
+    if count isnt @curWorkers
+      logger.warn "#{@} has mismatched workers, #{count} not #{@curWorkers}"
+      @curWorkers = count
+
+  toString: ->
+    super().slice(0, -1) + " #{JSON.stringify @params}]"
+
+
+module.exports = {
+  CAsm
+  ExecState
+  Op
+  Cond
+  Label
+  Include
+  Task
+}

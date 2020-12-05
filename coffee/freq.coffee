@@ -1,6 +1,8 @@
 'use strict'
 
-logger = require 'logger'
+log = require 'log'
+
+logger = log.getLogger 'freq'
 
 
 freq = {}

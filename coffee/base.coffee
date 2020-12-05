@@ -1,7 +1,7 @@
 'use strict'
 
 
-class Base
+class Pretty
   @toString: ->
     "[class #{@name}]"
 
@@ -11,9 +11,15 @@ class Base
     "[#{@constructor.name}]"
 
 
-class Base.WithCls extends Base
-  @toString: ->
-    "[class #{@name}]"
+class Reconst extends Pretty
+  @addVariant: ->
+    @variants[@name] = @
+    @::constructor[@name] = @
+
+  @getVariant: (name) ->
+    cls = @variants[name]
+    cls ?= super.variants[name]
+    return cls
 
   constructor: ->
     super()
@@ -23,4 +29,7 @@ class Base.WithCls extends Base
     "[#{@cls}]"
 
 
-module.exports = Base
+module.exports = {
+  Pretty
+  Reconst
+}

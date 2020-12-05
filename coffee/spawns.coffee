@@ -1,16 +1,14 @@
 'use strict'
 
 Edict = require 'edicts'
+Role = require 'role'
 freq = require 'freq'
 logger = require 'logger'
 l = logger.fmt
 
 
-StructureSpawn.cleanMemory = ->
-  logger.info 'cleaning spawns'
-  for sName of Memory.spawns
-    if not Game.spawns[sName]?
-      delete Memory.spawn[sName]
+StructureSpawn::toString = ->
+  "[StructureSpawn n=#{@name}]"
 
 
 StructureSpawn::withBackoff = (func) ->
@@ -110,5 +108,24 @@ StructureSpawn::tick = ->
         @complete()
 
 
-StructureSpawn::toString = ->
-  "[StructureSpawn n=#{@name}]"
+cleanMemory = ->
+  logger.info 'cleaning spawns'
+  for sName of Memory.spawns
+    if not Game.spawns[sName]?
+      delete Memory.spawn[sName]
+
+
+tick = ->
+  for sName, spawn of Game.spawns
+    spawn.init()
+    spawn.tick()
+  freq.onRare 2, =>
+    cleanMemory()
+
+
+module.exports = {
+  Role
+  cleanMemory
+  tick
+}
+

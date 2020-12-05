@@ -2,7 +2,6 @@
 
 Base = require 'base'
 Role = require 'roles'
-Task = require 'tasks'
 
 logger = require 'logger'
 freq = require 'freq'
@@ -36,14 +35,16 @@ priority =
 
 class Edict extends Base.WithCls
   @variants: {}
-
   @makeNewVariant: ->
+    if Edict.variants[@name]
+      throw Error 'duplicate variant'
     Edict.variants[@name] = @
     Edict[@name] = @
 
-  @status: status
-  @type: type
-  @priority: priority
+  @clsFromMem: (str) ->
+    cls = @variants[str]
+    throw 'invalid class' if not cls?
+    return cls
 
   @newFromRef: (ref) ->
     [rName, gName, eName] = ref.split ':'
@@ -53,6 +54,9 @@ class Edict extends Base.WithCls
 
   @newFromMem: (source, opts) ->
     cls = @variants[opts.cls]
+    if not cls?
+      logger.error 'trashed bad edict'
+      return
     edict = new cls source, opts
     logger.trace "reconstituted #{edict}"
     return edict
@@ -218,5 +222,9 @@ class Edict.RunTask extends Edict
   toString: ->
     super().slice(0, -1) + " #{@task}]"
 
+
+Edict.status = status
+Edict.type = type
+Edict.priority = priority
 
 module.exports = Edict

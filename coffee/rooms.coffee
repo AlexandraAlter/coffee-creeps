@@ -8,13 +8,6 @@ logger = require 'logger'
 freq = require 'freq'
 
 
-Room.cleanMemory = ->
-  logger.info 'cleaning rooms'
-  for rName of Memory.rooms
-    if not Game.rooms[rName]?
-      delete Memory.rooms[rName]
-
-
 Room::withBackoff = (func) ->
   if @backedOff
     return
@@ -55,3 +48,37 @@ Room::init = ->
     for gName, gov of @memory.governors
       @memory.governors[gName] = Gov.newFromMem @, gov
     return
+
+
+cleanMemory = ->
+  logger.info 'cleaning rooms'
+  for rName of Memory.rooms
+    if not Game.rooms[rName]?
+      delete Memory.rooms[rName]
+
+
+tick = ->
+  for rName, room of Game.rooms
+    room.init()
+
+    freq.onRareOrReload 0, =>
+      logger.info l"refreshing govs in #{room}"
+      logger.withIndent =>
+        Gov.allVariants.delIfRequired room
+        Gov.allVariants.newIfRequired room
+
+    for gName, gov of room.memory.governors
+      gov.tick()
+      gov.updateEdicts()
+      freq.onRareOrReload 0, =>
+        logger.info l"cleaning govs in #{room}"
+        gov.clean()
+
+  freq.onRare 1, =>
+    cleanMemory()
+
+
+module.exports = {
+  cleanMemory
+  tick
+}

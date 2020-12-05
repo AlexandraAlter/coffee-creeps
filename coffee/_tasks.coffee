@@ -73,7 +73,7 @@ class TaskState extends Base
   constructor: (@creep, vals) ->
     super()
     Object.assign @, vals
-    Object.defineProperty @, 'creep'
+    Object.defineProperty @, 'creep', {}
     @stage = 0 if not @stage?
 
   advance: (count) -> @stage += count
@@ -251,14 +251,6 @@ class Task.Move extends Task
   ]
   @stages: do => @stagesFromSubtasks()
 
-  @casm: new CAsm 'move', [
-    new Op.GetObject 'targetid', 'target'
-    new Label 'inner'
-    new Op.Move 'target'
-    new Op.IsNextTo 'target'
-    new Op.Branch -2, cond: Cond.False
-    new Op.Halt
-  ]
 
   constructor: (opts) ->
     super opts

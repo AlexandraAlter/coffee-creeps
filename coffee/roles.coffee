@@ -1,12 +1,14 @@
 'use strict'
 
-Base = require 'base'
-logger = require 'logger'
-l = logger.fmt
+base = require 'base'
+log = require 'log'
 _ = require 'lodash'
 
+logger = log.getLogger 'roles'
+l = log.fmt
 
-class Role extends Base.WithCls
+
+class Role extends base.Reconst
   @variants = {}
 
   @makeNewVariant: ->
@@ -41,4 +43,6 @@ class Role extends Base.WithCls
   toJSON: -> @cls
 
 
-module.exports = Role
+module.exports = {
+  Role
+}

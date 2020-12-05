@@ -1,10 +1,10 @@
 'use strict'
 
-Gov = require 'governors'
+govs = require 'govs'
 
 
-class BuildingGov extends Gov
-  Gov.variants[@name] = @
+class BuildGov extends govs.Gov
+  @addVariant()
 
   constructor: (room, opts) ->
     super(room, opts)
@@ -14,4 +14,6 @@ class BuildingGov extends Gov
   finish: ->
 
 
-module.exports = BuildingGov
+module.exports = {
+  BuildGov
+}
