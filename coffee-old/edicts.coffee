@@ -1,6 +1,6 @@
 'use strict'
 
-Base = require 'base'
+Core = require 'core'
 Role = require 'roles'
 
 logger = require 'logger'
@@ -33,7 +33,7 @@ priority =
   XTRM: 7
 
 
-class Edict extends Base.WithCls
+class Edict extends Core
   @variants: {}
   @makeNewVariant: ->
     if Edict.variants[@name]
@@ -186,7 +186,7 @@ class Edict.CreateCreeps extends Edict.SpawnerEdict
 
   toString: ->
     rName = if @role? then @role.name else null
-    super().slice(0, -1) + " #{rName}*#{@number}=[#{@creeps}]]"
+    super()[...-1] + " #{rName}*#{@number}=[#{@creeps}]]"
 
 
 class Edict.DestroyCreeps extends Edict
@@ -219,8 +219,7 @@ class Edict.RunTask extends Edict
       logger.warn "#{@} has mismatched workers, #{count} not #{@curWorkers}"
       @curWorkers = count
 
-  toString: ->
-    super().slice(0, -1) + " #{@task}]"
+  toString: -> super()[...-1] + " #{@task}]"
 
 
 Edict.status = status

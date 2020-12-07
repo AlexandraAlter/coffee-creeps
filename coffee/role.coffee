@@ -1,19 +1,16 @@
 'use strict'
 
-base = require 'base'
-log = require 'log'
 _ = require 'lodash'
+log = require 'log'
+Core = require 'core'
+Rehydrator = require 'rehydrator'
 
-logger = log.getLogger 'roles'
+logger = log.getLogger 'role'
 l = log.fmt
 
 
-class Role extends base.Reconst
-  @variants = {}
-
-  @makeNewVariant: ->
-    Role.variants[@name] = @
-    Role[@name] = @
+class Role extends Core
+  @rehydrator: new Rehydrator @
 
   @selectParts: (maxCost) -> []
 
@@ -43,6 +40,5 @@ class Role extends base.Reconst
   toJSON: -> @cls
 
 
-module.exports = {
-  Role
-}
+module.exports = Role
+

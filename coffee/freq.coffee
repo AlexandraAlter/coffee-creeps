@@ -4,8 +4,11 @@ log = require 'log'
 
 logger = log.getLogger 'freq'
 
-
 freq = {}
+
+
+logger.info 'reloading'
+firstLoadTime = Game.time
 
 
 freq.EVERY = 1
@@ -19,9 +22,6 @@ freq.SAFETY = Symbol('safety')
 freq.DEBUG = Symbol('debug')
 freq.TEST = Symbol('test')
 
-
-logger.info 'reloading'
-firstLoadTime = Game.time
 
 safety = on
 debug = on

@@ -1,7 +1,7 @@
 'use strict'
 
 # CAsm = require 'casm'
-govs = require 'govs'
+Node = require 'node'
 # Edict = require 'edicts'
 # Role = require 'roles'
 # procs = require 'casm.procs'
@@ -90,8 +90,7 @@ govs = require 'govs'
 #   constructor: (opts) ->
 
 
-class UpkeepGov extends govs.Gov
-  @addVariant()
+class UpkeepNode extends Node
 
 #   @HarvestEdict = HarvestEdict
 #   @StaticHarvestEdict = StaticHarvestEdict
@@ -159,6 +158,5 @@ class UpkeepGov extends govs.Gov
 #     super()
 
 
-module.exports = {
-  UpkeepGov
-}
+module.exports = UpkeepNode
+

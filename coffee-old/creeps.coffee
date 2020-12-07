@@ -1,6 +1,6 @@
 'use strict'
 
-Base = require 'base'
+Core = require 'core'
 Role = require 'roles'
 casm = require 'casm'
 Edict = require 'edicts'
@@ -9,7 +9,7 @@ l = logger.fmt
 freq = require 'freq'
 
 
-class Creep.Job extends Base.WithCls
+class Creep.Job extends Core
   @newFromMem: (room, opts) ->
     gName = opts.edict.source
     id = opts.edict.id
@@ -154,7 +154,6 @@ tick = ->
 
 
 module.exports = {
-  Base
   Role
   CAsm
   Edict

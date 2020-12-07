@@ -1,6 +1,5 @@
 'use strict'
 
-Base = require 'base'
 Edict = require 'edicts'
 logger = require 'logger'
 l = logger.fmt
@@ -9,7 +8,9 @@ _ = require 'lodash'
 EXEC_LIMIT = 10
 
 
-class CAsm extends Base
+class CAsm
+  @toString: -> "[class #{@name}]"
+
   @verifyOps: ->
 
   @countOps: (ops) ->
@@ -45,12 +46,13 @@ class CAsm extends Base
     (o for o in ops when o instanceof Op)
 
   constructor: (@name, ops) ->
-    super()
     CAsm.verifyOps ops
     @includes = CAsm.extractIncludes ops
     @maps = CAsm.extractMaps ops, @includes
     @labels = CAsm.extractLabels ops, @maps
     @ops = CAsm.rebaseOps ops, @labels, @maps
+
+  toString: -> "[#{@constructor.name}]"
 
   getOp: (pc) ->
     if 0 <= pc < @ops.length then return @ops[pc]
@@ -78,14 +80,13 @@ class CAsm extends Base
         return ex.halt
 
 
-class ExecState extends Base
+class ExecState
   @newFromMem: (vals) ->
     state = new ExecState vals
     logger.trace l"reconstituted #{state}"
     return state
 
   constructor: (vals) ->
-    super()
     Object.assign @, vals
     @pc ?= 0
     @lr ?= 0
@@ -104,34 +105,39 @@ class ExecState extends Base
     delete @sp if _.isEmpty @sp
     return val
 
-  toString: ->
-    super().slice(0, -1) + " pc=#{@pc}"
+  toString: -> "[#{@constructor.name} pc=#{@pc}]"
 
 
-class Label extends Base
-  constructor: (@name) -> super()
+class Label
+  @toString: -> "[class #{@name}]"
+  constructor: (@name) ->
+  toString: -> "[#{@constructor.name}]"
 
 
-class Include extends Base
-  constructor: (@casm) -> super()
+class Include
+  @toString: -> "[class #{@name}]"
+  constructor: (@casm) ->
+  toString: -> "[#{@constructor.name}]"
 
 
-class Cond extends Base
+class Cond
+  @toString: -> "[class #{@name}]"
+
   @Mi: new Cond 'negative',      (ex) -> not ex.test
   @Pl: new Cond 'positive/zero', (ex) -> ex.test
   @True: @Pl
   @False: @Mi
   @Al: new Cond 'always',        (ex) -> true
 
-  constructor: (@name, @func) -> super()
+  constructor: (@name, @func) ->
 
-  toString: ->
-    super().slice(0, -1) + " #{@name}]"
+  toString: -> "[#{@constructor.name} #{@name}]"
 
 
-class Op extends Base
+class Op
+  @toString: -> "[class #{@name}]"
+
   constructor: (opts) ->
-    super()
     {@cond = null} = opts ? {}
 
   call: (ex, creep) ->
@@ -141,106 +147,7 @@ class Op extends Base
     if not @cond? or @cond.func ex
       @call ex, creep
 
-
-class Op.Nop extends Op
-
-
-# arbitrary code
-
-class Op.Func extends Op
-  constructor: (@func, opts) -> super(opts)
-  call: (ex, creep) ->
-    @func.call @, ex, creep
-
-
-# stack manipulation
-
-class Op.Pop extends Op
-  constructor: (@reg, opts) -> super(opts)
-  call: (ex, creep) ->
-    ex[@reg] = ex.dequeue()
-
-
-class Op.Push extends Op
-  constructor: (@reg, opts) -> super(opts)
-  call: (ex, creep) ->
-    ex.enqueue(ex[@reg])
-
-
-# branching
-
-class Op.Branch extends Op
-  constructor: (opts) ->
-    super(opts)
-    {@reg = null, @offset = null, @label = null, @link = false} = opts
-    if not @reg? and not @offset? and not @label?
-      throw Error 'must provide a reg, offset, or label'
-    @ex = @reg?
-  call: (ex, creep) ->
-    if @link
-      ex.lr = ex.pc + 1
-    if @ex
-      ex.pc = ex[@reg]
-    else
-      ex.pc += @offset
-
-
-class Op.Yield extends Op
-  constructor: (opts) -> super(opts)
-  call: (ex, creep) ->
-    ex.yield = true
-
-
-class Op.Halt extends Op
-  constructor: (opts) -> super(opts)
-  call: (ex, creep) ->
-    ex.yield = true
-    ex.halt = true
-
-
-# data manipulation
-
-
-class Op.Set extends Op
-  constructor: (@reg, @value) -> super()
-  call: (ex, creep) ->
-    if @value?
-      ex[@reg] = @value
-    else
-      delete ex[@reg]
-
-
-class Op.Copy extends Op
-  constructor: (@reg1, @reg2) -> super()
-  call: (ex, creep) ->
-    ex[@reg2] = ex[@reg1]
-
-
-class Op.GetObject extends Op
-  constructor: (@idReg, @outReg) -> super()
-  call: (ex, creep) ->
-    if ex[@outReg]?
-      return
-    Object.defineProperty ex, @outReg, value: Game.getObjectById ex[@idReg]
-
-
-class Op.Move extends Op
-  constructor: (@targetReg) -> super()
-  call: (ex, creep) ->
-    res = creep.moveTo ex[@targetReg]
-    if res isnt OK
-      logger.warn l"#{creep} failed to move with #{res}"
-    ex.res = res
-    ex.yield = true
-
-
-# predicates
-
-class Op.IsNextTo extends Op
-  constructor: (@targetReg) -> super()
-  call: (ex, creep) ->
-    super ex, creep
-    @test = state.creep.pos.getRangeTo(state.target) <= 1
+  toString: -> "[#{@constructor.name}]"
 
 
 class Task extends Edict
@@ -266,8 +173,7 @@ class Task extends Edict
       logger.warn "#{@} has mismatched workers, #{count} not #{@curWorkers}"
       @curWorkers = count
 
-  toString: ->
-    super().slice(0, -1) + " #{JSON.stringify @params}]"
+  toString: -> super()[...-1] + " #{JSON.stringify @params}]"
 
 
 module.exports = {

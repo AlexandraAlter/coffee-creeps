@@ -1,6 +1,5 @@
 'use strict'
 
-Base = require 'base'
 CAsm = require 'casm'
 Op = CAsm.Op
 Cond = CAsm.Cond
@@ -33,7 +32,7 @@ class Res extends Base
       (@skipTask is false) and (@abort is false) and (@unimpl is false)
 
   toString: ->
-    msg = super().slice(0, -1) + " #{@name}"
+    msg = super()[...-1] + " #{@name}"
     if @adv isnt null then msg += " adv=#{@adv}"
     if @imm then msg += ' imm'
     if @skipTask then msg += ' skipTask'
@@ -78,8 +77,7 @@ class TaskState extends Base
 
   advance: (count) -> @stage += count
 
-  toString: ->
-    super().slice(0, -1) + " c=#{@creep} s=#{@stage}]"
+  toString: -> super()[...-1] + " c=#{@creep} s=#{@stage}]"
 
 
 class Task extends Base.WithCls
