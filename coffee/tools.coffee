@@ -27,6 +27,7 @@ printDeep = (obj, depth = 0) ->
 
 
 module.exports = {
+  toString: -> '[module tools]'
   print
   printDeep
 }

@@ -1,46 +1,46 @@
 'use strict'
 
-Worker = require 'worker.core'
+Worker = require 'worker'
 
 
 class TowerWorker extends Worker
   @backingCls = StructureTower
-  @defineMemory ['towers', null]
+  @defineMemory -> ['towers', @ref]
 
 
 class ControllerWorker extends Worker
   @backingCls = StructureController
-  @defineMemory ['controllers', null]
+  @defineMemory -> ['controllers', @ref]
 
 
 class ObserverWorker extends Worker
   @backingCls = StructureObserver
-  @defineMemory ['observers', null]
+  @defineMemory -> ['observers', @ref]
 
 
 class NukerWorker extends Worker
   @backingCls = StructureNuker
-  @defineMemory ['nukers', null]
+  @defineMemory -> ['nukers', @ref]
 
 
 class LinkWorker extends Worker
   @backingCls = StructureLink
-  @defineMemory ['links', null]
+  @defineMemory -> ['links', @ref]
 
 
 class LabWorker extends Worker
   @backingCls = StructureLab
-  @defineMemory ['labs', null]
+  @defineMemory -> ['labs', @ref]
 
 
 class TerminalWorker extends Worker
   @backingCls = StructureTerminal
-  @defineMemory ['terminals', null]
+  @defineMemory -> ['terminals', @ref]
 
 
 class FactoryWorker extends Worker
   @backingCls = StructureFactory
-  @defineMemory ['factories', null]
+  @defineMemory -> ['factories', @ref]
 
 
 module.exports = {

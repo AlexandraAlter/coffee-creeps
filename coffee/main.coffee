@@ -7,46 +7,48 @@ do ->
     console.log "load backoff at #{Memory.loadBackoff}"
     Memory.loadBackoff--
     throw {}
-backoff = () -> Memory.loadBackoff = 10
+backoff = () -> Memory.loadBackoff = Memory.defaultBackoff ? 10
 
 
 try
-  log = require 'log'
-  freq = require 'freq'
-  workers = require 'workers'
-  Zone = require 'zone'
-  Sys = require 'sys'
+  do setGlobals = ->
+    global.log ?= require 'log'
+    global.freq ?= require 'freq'
+    global.Backoff ?= require 'backoff'
+    global.Zone ?= require 'zone'
+    global.Brain ?= require 'brain'
+    global.Sys ?= require 'sys'
+
+    global.tools ?= require 'tools'
+    global.report ?= require 'report'
 
   logger = log.getLogger 'main'
   l = log.fmt
+
 catch e
   backoff()
   throw e
 
 
-do setGlobals = ->
-  global.log ?= log
-  global.freq ?= freq
-  global.tools ?= require 'tools'
-  global.report ?= require 'report'
-
-  global.workers ?= workers
-  global.nodes ?= require 'nodes'
-  global.cortexes ?= require 'cortexes'
-  global.Zone ?= Zone
-  global.Brain ?= require 'brain'
-
-  global.Sys ?= Sys
-
-
 tick = ->
   freq.onReload =>
-    workers.linkAllProtos()
-    Zone.linkProto()
-    Sys.reload()
-  Sys.clean()
-  Sys.linkGame()
+    logger.info 'starting reload'
 
+    try
+      Sys.linkAll()
+      Sys.reload()
+    catch err
+      throw '' if err instanceof Backoff.Error
+      throw err
+
+    freq.reloadDone()
+    logger.info 'finished reload'
+
+  Sys.backoff.with =>
+    Sys.clean()
+    Sys.linkGame()
+    Sys.refresh()
+    Sys.tick()
 
   # for room of @rooms
   #   room.reset()

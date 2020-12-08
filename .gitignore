@@ -1,4 +1,5 @@
 .screeps.json
+.screeps*
 node_modules
 dist/*
 !dist/.keep

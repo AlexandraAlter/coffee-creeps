@@ -4,7 +4,6 @@ Core = require 'core'
 Backoff = require 'backoff'
 log = require 'log'
 freq = require 'freq'
-cortexes = require 'cortexes'
 
 logger = log.getLogger 'brain'
 l = log.fmt
@@ -14,22 +13,19 @@ class Brain extends Core
   Object.defineProperty @prototype, 'ref',
     get: getRef = -> 'brain'
 
-  @defineMemory ''
+  @defineMemory ['brain']
 
-  constructor: (@sys) ->
+  constructor: () ->
     super()
-    freq.onSafety =>
-      throw Error 'requires sys' if not @sys?
     @cortexes = []
-    @zones = null
 
-  reset: ->
-    @backoff.reset()
-    delete @_memory
-    @cortexes = @sys.cortexes
-    @zones = @sys.zones
+  iterChildren: ->
+    if @cortexes?
+      yield cortex for cortex in @cortexes
 
-  setup: ->
+  reload: ->
+    @cortexes = (new cortexType for cortexType from @sys.cortexTypes())
+    super()
 
 
 module.exports = Brain

@@ -4,6 +4,7 @@ module.exports = function(grunt) {
     var branch = grunt.option('branch') || config.branch;
     var email = grunt.option('email') || config.email;
     var password = grunt.option('password') || config.password;
+    var token = grunt.option('token') || config.token;
     var ptr = grunt.option('ptr') ? true : config.ptr;
     var server = config.server ? config.server : undefined;
 
@@ -15,6 +16,7 @@ module.exports = function(grunt) {
                 server: server,
                 email: email,
                 password: password,
+                token: token,
                 branch: branch,
                 ptr: ptr
             },

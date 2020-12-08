@@ -3,19 +3,23 @@
 _ = require 'lodash'
 log = require 'log'
 Core = require 'core'
+Node = require 'node'
 Backoff = require 'backoff'
 freq = require 'freq'
 
-logger = log.getLogger 'room'
+logger = log.getLogger 'zone'
 l = log.fmt
 
 
 class Zone extends Core.Backed
   @backingCls = Room
 
+  @defineMemory 'memPath'
+
   constructor: (backing) ->
     super backing
-    @name = backing.name
+    @name = @backing.name
+    @memPath = ['rooms', @name]
     @nodes = []
     @workers = []
 
@@ -23,23 +27,19 @@ class Zone extends Core.Backed
 
   fetchBacking: -> Game.rooms[@name]
 
-  addNode: (node) -> @nodes.append node
+  addNode: (node) -> @nodes.push node
   remNode: (node) -> _.pull @nodes, node
+  getNode: (nodeCls) -> _.filter @nodes, (n) -> n instanceof nodeCls
 
+  iterChildren: ->
+    if @nodes?
+      yield node for node in @nodes
 
-# Room::attachGov = (govCls) ->
-#   @memory.governors[govCls.name] = new govCls @, {}
-
-
-# Room::detatchGov = (govCls) ->
-#   delete @memory.governors[govCls.name]
-
-
-# Room::initFirstTime = ->
-#   logger.info "initFirstTime for #{@}"
-#   @memory = {} unless @memory?
-#   @memory.governors = {} unless @memory.governors?
-#   @memory.backoff = 0
+  reload: ->
+    @nodes = _.compact(
+      for name, mem of @memory
+        if name? and mem?
+          Node.rehydrator.fromIfValid name, @, mem)
 
 
 # Room::init = ->

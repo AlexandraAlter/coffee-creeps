@@ -1,6 +1,6 @@
 'use strict'
 
-Worker = require 'worker.core'
+Worker = require 'worker'
 
 
 class RobotWorker extends Worker

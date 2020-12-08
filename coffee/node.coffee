@@ -3,25 +3,36 @@
 Core = require 'core'
 Backoff = require 'backoff'
 Rehydrator = require 'rehydrator'
-log = require 'log'
 freq = require 'freq'
+log = require 'log'
 
 logger = log.getLogger 'node'
 l = log.fmt
 
+Memory.nodeTtl ?= 30
+
 
 class Node extends Core
-  @rehydrator = new Rehydrator @
+  @rehydrator: new Rehydrator @
+  @logger: logger
 
   Object.defineProperty @prototype, 'ref',
     get: getRef = -> @name
 
-  @defineMemory -> @room.memory.nodes
+  @defineMemory -> @zone.memory[@name]
 
-  constuctor: ->
+  constructor: (@name, @zone, opts) ->
     super()
-    @name = 'foo'
-    @room = null
+    freq.onSafety =>
+      throw Error 'Node is virtual' if @constructor is Node
+      throw Error 'requires arg name' if not @name?
+      throw Error 'requires arg zone' if not @zone?
+      throw Error 'requires arg opts' if not opts?
+    Node.rehydrator.notate @
+    @memory.ttl = Game.time + Memory.nodeTtl
+
+  tick: ->
+    @delete() if Game.time > @memory.ttl
 
 
 module.exports = Node

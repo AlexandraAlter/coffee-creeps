@@ -36,6 +36,16 @@ fmt = (strings, exps...) ->
       acc + val + text
 
 
+catchVar = (name, value, func) ->
+  try func()
+  catch e
+    pos = e.stack.indexOf('    at ')
+    throw e if pos is -1
+    msg = "\twhere #{name} = #{value}\n"
+    e.stack = e.stack[0..pos] + msg + e.stack[pos...]
+    throw e
+
+
 class Logger
   @toString: ->
     "[class #{@name}]"
@@ -124,9 +134,11 @@ getLogger = (name, level = null, parent = null) ->
 
 
 module.exports = {
+  toString: -> '[module log]'
   Level
   levels...
   fmt
+  catchVar
   Logger
   globalLogger
   setGlobalLevel

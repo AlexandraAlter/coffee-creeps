@@ -87,6 +87,7 @@ memory = ->
 
 
 module.exports = {
+  toString: -> '[module report]'
   Report
   cores
   memory

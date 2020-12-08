@@ -9,7 +9,18 @@ logger = log.getLogger 'role'
 l = log.fmt
 
 
-class Role extends Core
+s = {}
+class Strategy
+  @toString: -> "[class #{@name}]"
+  constructor: (@name) ->
+  toString: -> "[#{@constructor.name} #{@name}]"
+
+s.BEST = new Strategy 'best'
+
+
+class Role
+  @toString: -> "[class #{@name}]"
+
   @rehydrator: new Rehydrator @
 
   @selectParts: (maxCost) -> []
@@ -34,8 +45,11 @@ class Role extends Core
     logger.trace l"reconstituted #{role}"
     return role
 
-  constructor: (@creep, opts) ->
-    super()
+  @fromSpawner: (spawner, strategy) ->
+
+  constructor: (strategy, opts) ->
+
+  toString: -> "[#{@constructor.name}]"
 
   toJSON: -> @cls
 

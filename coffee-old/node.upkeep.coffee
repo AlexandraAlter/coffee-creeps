@@ -1,7 +1,7 @@
 'use strict'
 
 # CAsm = require 'casm'
-Node = require 'node'
+Node = require 'node.core'
 # Edict = require 'edicts'
 # Role = require 'roles'
 # procs = require 'casm.procs'
