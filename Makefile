@@ -1,31 +1,27 @@
-
 .PHONY: build buildAll upload clean
 
-coffeeSrc = $(shell find . -type f -name '*.coffee')
-coffeeBuild = $(patsubst ./%.coffee, dist/%.js, $(src))
-
-nimSrc = $(shell find . -type f -name '*.nim')
-nimBuild = 'dist/nim.js'
+tsSrc = $(shell find . -type f -name '*.ts')
+tsBuild = $(patsubst ./%.ts, dist/%.js, $(src))
 
 rustSrc = $(shell find . -type f -name '*.rs')
-rustBuild = 'dist/rust_creeps.js'
+rustBuild = 'dist/rust_creeps.wasm'
 
-build: buildCoffee buildNim buildRust upload
-
-buildCoffee: $(coffeeSrc)
-	coffee -o dist -c coffee/*.coffee
-
-buildNim: $(nimSrc)
-	nim js -d:nodejs -o:dist/nim.js nim/main.nim
+build: buildTs buildRust copyJs upload
 
 buildRust: $(rustSrc)
-	wasm-pack build --out-dir dist --target nodejs
+	cargo web build --runtime standalone --release
+	cp target/wasm32-unknown-unknown/release/rust_creeps.wasm dist/rust_creeps.wasm
 
-$(coffeeBuild) $(nimBuild) $(rustBuild): buildAll
+buildTs: $(tsSrc)
+	npx tsc
+
+copyJs dist/lodash4.js:
+	cp node_modules/lodash/lodash.min.js dist/lodash4.js
+
+$(tsBuild) $(rustBuild): buildAll
 
 upload:
 	grunt screeps
 
 clean:
-	rm -r dist/*.js
-
+	rm -r dist/*

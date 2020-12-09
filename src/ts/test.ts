@@ -1,0 +1,3 @@
+Game.getObjectById("");
+
+function blah() {}
