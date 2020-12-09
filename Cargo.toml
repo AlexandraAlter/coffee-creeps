@@ -1,5 +1,5 @@
 [package]
-name = "rust-creeps"
+name = "crust"
 version = "0.1.0"
 authors = ["AlexandraAlter"]
 edition = "2018"

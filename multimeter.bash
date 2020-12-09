@@ -7,10 +7,14 @@ _base="$(dirname $_script)"
 
 pushd $_base
 
-[[ -z $1 ]] && echo 'no directory given' && exit 1
-[[ ! -d "envs/$1" ]] && echo 'invalid directory given' && exit 1
+if [[ -z $1 ]]; then
+	env="default"
+else
+	env="$1"
+fi
+[[ ! -d "envs/$env" ]] && echo 'invalid directory given' && exit 1
 
-pushd "envs/$1"
+pushd "envs/$env"
 npx multimeter
 popd
 
