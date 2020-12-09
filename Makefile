@@ -21,7 +21,11 @@ copyJs dist/lodash4.js:
 $(tsBuild) $(rustBuild): buildAll
 
 upload:
-	grunt screeps
+ifndef env
+	@echo 'no env defined'
+	grunt screeps --env=default
+endif
+	grunt screeps --env=$(env)
 
 clean:
 	rm -r dist/*
