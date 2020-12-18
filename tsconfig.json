@@ -2,9 +2,25 @@
   "extends": "@tsconfig/node10/tsconfig.json",
 
   "compilerOptions": {
-    "outDir": "dist"
+    "outDir": "dist",
+
+    "lib": [
+      "es2018",
+      "es2019.string",
+      "es2020.bigint",
+      "es2020.sharedmemory"
+    ],
+
+    "types": [
+      "lodash",
+      "lodash4",
+      "screeps"
+    ],
+
+    "experimentalDecorators": true,
+    "skipLibCheck": false
   },
-  
+
   "include": ["src/ts/*"],
   "exclude": ["node_modules"]
 }

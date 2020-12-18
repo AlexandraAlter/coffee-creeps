@@ -6,7 +6,9 @@ tsBuild = $(patsubst ./%.ts, dist/%.js, $(src))
 rustSrc = $(shell find . -type f -name '*.rs')
 rustBuild = 'dist/rust_creeps.wasm'
 
-build: buildTs buildRust copyJs upload
+all: build copy upload
+
+build: buildRust buildTs
 
 buildRust: $(rustSrc)
 	cargo web build --runtime standalone --release
@@ -14,6 +16,8 @@ buildRust: $(rustSrc)
 
 buildTs: $(tsSrc)
 	npx tsc
+
+copy: copyJs
 
 copyJs dist/lodash4.js:
 	cp node_modules/lodash/lodash.min.js dist/lodash4.js
@@ -24,8 +28,9 @@ upload:
 ifndef env
 	@echo 'no env defined'
 	grunt screeps --env=default
-endif
+else
 	grunt screeps --env=$(env)
+endif
 
 clean:
 	rm -r dist/*
