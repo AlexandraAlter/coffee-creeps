@@ -1,7 +1,7 @@
-import { getLogger, Logger } from './log'
+import { getLogger } from './log'
 import type { Constructor } from './utils'
-import type { Worker } from './worker'
-import _ from 'lodash'
+import type { Worker, AnyWorker } from './worker'
+import _ from 'lodash4'
 
 const logger = getLogger('tasks')
 
@@ -12,22 +12,14 @@ export enum TaskRet {
 
 export interface State {}
 
-export interface Task<W extends Worker = any, S extends State = any> {
+export interface Task<W extends AnyWorker, S extends State, A> {
   constructor: {
     name: string
   }
 }
 
-export abstract class Task<
-  W extends Worker = any,
-  S extends State = any,
-  A extends object = object
-> {
+export abstract class Task<W extends AnyWorker, S extends State, A> {
   protected static logger = logger
-
-  static toRef(): string {
-    return this.name
-  }
 
   static toString(): string {
     return `[class ${this.name}]`
@@ -44,11 +36,13 @@ export abstract class Task<
   }
 }
 
-export class TaskFunc<
-  W extends Worker = any,
-  S extends State = any,
-  A extends object = object
-> extends Task<W, S, A> {
+export type AnyTask = Task<any, any, any>
+
+export class TaskFunc<W extends AnyWorker, S extends State, A> extends Task<
+  W,
+  S,
+  A
+> {
   public constructor(
     name: string,
     worker: Constructor<W>,
@@ -66,13 +60,13 @@ export class TaskLib {
     return `[class ${this.name}]`
   }
 
-  private tasks: { [index: string]: Task } = {}
+  private tasks: { [index: string]: AnyTask } = {}
 
   public toString(): string {
     return `[${this.constructor.name}]`
   }
 
-  public register(task: Task) {
+  public register(task: AnyTask) {
     if (task.name in this.tasks) {
       throw Error(`duplicate task name ${task.name} in tasklib`)
     }
@@ -82,7 +76,7 @@ export class TaskLib {
   public list(kind?: typeof Worker) {
     const ret = []
     for (const n in this.tasks) {
-      const task: Task = this.tasks[n]
+      const task: AnyTask = this.tasks[n]
       if (task && (!kind || task.worker instanceof kind)) {
         ret.push(task)
       }
@@ -90,7 +84,7 @@ export class TaskLib {
     return ret
   }
 
-  public get(name: string): Task | undefined {
+  public get(name: string): AnyTask | undefined {
     return this.tasks[name]
   }
 }

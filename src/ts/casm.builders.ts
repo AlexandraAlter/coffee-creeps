@@ -7,14 +7,14 @@ export function Add(
   in2?: Reg,
   inImm?: Imm,
   cond?: Cond
-): Op {
+): Op<any> {
   return [cond, OpC.Add, out, in1, in2, , inImm]
 }
 
-export const Sub = (): Op => [, OpC.Sub, , , , , ,]
+export const Sub = (): Op<any> => [, OpC.Sub, , , , , ,]
 
-export const Mul = (): Op => [, OpC.Mul, , , , , ,]
+export const Mul = (): Op<any> => [, OpC.Mul, , , , , ,]
 
-export const B = (): Op => [, OpC.B, , , , , ,]
+export const B = (): Op<any> => [, OpC.B, , , , , ,]
 
-export const Bl = (): Op => [, OpC.Bl, , , , , ,]
+export const Bl = (): Op<any> => [, OpC.Bl, , , , , ,]

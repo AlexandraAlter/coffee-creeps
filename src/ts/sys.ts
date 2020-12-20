@@ -1,18 +1,20 @@
 import { getLogger } from './log'
 import { Core, newCoreMemory } from './core'
 import { TaskLib } from './tasks'
-import { Worker } from './worker'
+import { AnyWorker } from './worker'
 import { RobotWorker, PowerRobotWorker } from './worker.robots'
 import { SpawnWorker } from './worker.spawns'
 import { Cortex } from './cortex'
+import { Node } from './node'
 import { Zone } from './zone'
 import { Brain } from './brain'
 import { registerAll as registerRobotTasks } from './tasks.robots'
+import _ from 'lodash4'
 
 let logger = getLogger('sys')
 
 @Core.withMemory('sys')
-export class Sys extends Core<SystemMemory> {
+export class SysCls extends Core<SystemMemory> {
   protected static readonly logger = logger
 
   public readonly modules = {
@@ -26,24 +28,17 @@ export class Sys extends Core<SystemMemory> {
   public war = this.modules.war
 
   private typesOf<T extends Function, R extends T>(superType: T): R[] {
-    const result: R[] = []
-    const modules = this.modules
-    for (const mName in modules) {
-      const mod: any = this.modules[mName as keyof typeof modules]
-      for (const pName in mod) {
-        const prop: any = mod[pName]
-        if (prop && prop.prototype instanceof superType) {
-          result.push(prop)
-        }
-      }
-    }
-    return result
+    return _(this.modules)
+      .flatMap((m) => _.values(m))
+      .filter((p) => p.prototype instanceof superType)
+      .value()
   }
 
-  public readonly workerTypes: typeof Worker[] = this.typesOf(Worker)
+  public readonly nodeTypes: typeof Node[] = this.typesOf(Node)
   public readonly cortexTypes: typeof Cortex[] = this.typesOf(Cortex)
 
-  public readonly workers: Worker<any, any>[] = []
+  public readonly workers: AnyWorker[] = []
+  public readonly groups: Map<string, AnyWorker[]> = new Map()
   public readonly zones: Zone[] = []
   public readonly tasklib = new TaskLib()
   public readonly brain = new Brain()
@@ -59,7 +54,10 @@ export class Sys extends Core<SystemMemory> {
   }
 
   public initMem(): SystemMemory {
-    return newCoreMemory()
+    return {
+      groups: {},
+      ...newCoreMemory(),
+    }
   }
 
   public reload(): void {
@@ -90,5 +88,55 @@ export class Sys extends Core<SystemMemory> {
 
       registerRobotTasks(this.tasklib)
     })
+  }
+
+  // Groups
+
+  public setGroup(key: string, workers: AnyWorker[]): void {
+    this.groups.set(key, workers)
+    this.saveGroup(key)
+  }
+
+  public delGroup(key: string): void {
+    this.groups.delete(key)
+    this.saveGroup(key)
+  }
+
+  public getGroup(key: string): AnyWorker[] | undefined {
+    return this.groups.get(key)
+  }
+
+  public addGroup(key: string, workers: AnyWorker[]): void {
+    this.getGroup(key)?.push(...workers)
+    this.saveGroup(key)
+  }
+
+  public remGroup(key: string, workers: AnyWorker[]): void {
+    const g = this.getGroup(key)
+    if (g) {
+      this.setGroup(key, g.filter((w) => !workers.includes(w)))
+    }
+    this.saveGroup(key)
+  }
+
+  public saveGroup(key: string): void {
+    this.memory.groups[key] = this.getGroup(key)?.map((w) => w.toRef())
+  }
+
+  public saveGroups(): void {
+    this.memory.groups = {}
+    for (const k in this.groups.keys()) {
+      this.saveGroup(k)
+    }
+  }
+
+  public cleanGroups(): void {
+    for (const group in this.groups.entries()) {
+      const [k, v] = group
+      if (_.isEmpty(v)) {
+        this.groups.delete(k)
+      }
+    }
+    this.saveGroups()
   }
 }

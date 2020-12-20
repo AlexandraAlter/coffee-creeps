@@ -1,5 +1,5 @@
 import { ArgUsages, Opcode } from './casm'
-import _ from 'lodash'
+import _ from 'lodash4'
 
 const none: ArgUsages = {
   rd: 'ign',
@@ -39,12 +39,12 @@ const threeArg: ArgUsages = {
   imm: 'used',
 }
 
-export const Add: Opcode = _.merge(function () {}, oneArg)
+export const Add: Opcode<any> = _.merge(function () {}, oneArg)
 
-export const Sub: Opcode = _.merge(function () {}, oneArg)
+export const Sub: Opcode<any> = _.merge(function () {}, oneArg)
 
-export const Mul: Opcode = _.merge(function () {}, oneArg)
+export const Mul: Opcode<any> = _.merge(function () {}, oneArg)
 
-export const B: Opcode = _.merge(function () {}, oneArg)
+export const B: Opcode<any> = _.merge(function () {}, oneArg)
 
-export const Bl: Opcode = _.merge(function () {}, oneArg)
+export const Bl: Opcode<any> = _.merge(function () {}, oneArg)

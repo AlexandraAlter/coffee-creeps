@@ -50,4 +50,8 @@ export class Zone extends CoreBacked<Room, RoomMemory>{
   public initMem() {
     return newCoreMemory()
   }
+
+  public toRef(): string {
+    return this.name
+  }
 }

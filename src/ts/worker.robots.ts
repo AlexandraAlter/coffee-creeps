@@ -2,7 +2,7 @@ import { getLogger } from './log'
 import { applyMixins } from './utils'
 import { Core } from './core'
 import { Worker, newWorkerMemory } from './worker'
-import _ from 'lodash'
+import _ from 'lodash4'
 
 const logger = getLogger('worker.robots')
 
@@ -49,7 +49,7 @@ export class RobotWorker extends Worker<Creep, CreepMemory> {
       super()
     }
     this.name = ref
-    this.memPath = ['robots', ref]
+    this.memPath = ['creeps', ref]
   }
 
   public toString() {
@@ -67,6 +67,10 @@ export class RobotWorker extends Worker<Creep, CreepMemory> {
 
   initMem(): CreepMemory {
     return newCreepMemory()
+  }
+
+  public toRef(): string {
+    return this.backing.id
   }
 }
 export interface RobotWorker extends AnyRobotWorkerMixin {}
@@ -107,6 +111,10 @@ export class PowerRobotWorker extends Worker<PowerCreep, PowerCreepMemory> {
 
   initMem(): PowerCreepMemory {
     return newPowerCreepMemory()
+  }
+
+  public toRef(): string {
+    return this.backing.id
   }
 }
 export interface PowerRobotWorker extends AnyRobotWorkerMixin {}

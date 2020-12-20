@@ -1,5 +1,5 @@
 import { getLogger, fmt as l } from './log'
-import _ from 'lodash'
+import _ from 'lodash4'
 
 let logger = getLogger('role')
 void logger
@@ -11,7 +11,7 @@ export enum Strategy {
 }
 
 export function costOfParts(parts: BodyPartConstant[]): number {
-  return _.sum(parts, (part) => BODYPART_COST[part])
+  return _(parts).map((part) => BODYPART_COST[part]).sum()
 }
 
 export function linearGuess(

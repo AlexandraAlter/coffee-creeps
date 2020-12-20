@@ -31,7 +31,11 @@ declare global {
     state: object | undefined
   }
 
-  interface SystemMemory extends CoreMemory {}
+  interface SystemMemory extends CoreMemory {
+    groups: {
+      [key: string]: string[] | undefined
+    }
+  }
 
   interface BrainMemory extends CoreMemory {}
 

@@ -1,6 +1,6 @@
 import { getLogger } from './log'
 import type { Logger } from './log'
-import _ from 'lodash'
+import _ from 'lodash4'
 import { Backoff, BackoffMem } from './backoff'
 
 const logger = getLogger('core')

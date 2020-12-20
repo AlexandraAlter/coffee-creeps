@@ -1,31 +1,22 @@
 import { getLogger } from './log'
 import { Freq } from './freq'
 
-import { Worker } from './worker'
-import { RobotWorker, PowerRobotWorker } from './worker.robots'
-import { SpawnWorker } from './worker.spawns'
-import { Role } from './role'
-
-import { Sys as SysCon } from './sys'
-import { Cmd as CmdCon } from './cmd'
+import { SysCls } from './sys'
 import _ from 'lodash4'
+
+import { m, cl, s, c, r } from './cmd'
 
 let logger = getLogger('main')
 void logger
 
 export function setupGlobals(): void {
-  global.log = require('./log')
-  global.freq = require('./freq')
-  global.Freq = Freq
-  global.Role = Role
-  global.Worker = Worker
-  global.SpawnWorker = SpawnWorker
-  global.RobotWorker = RobotWorker
-  global.PowerRobotWorker = PowerRobotWorker
-  global.tasks = require('./tasks')
-  global.Sys = new SysCon()
-  global.getTask = (ref: string) => Sys.tasklib.get(ref)
-  global.Cmd = CmdCon()
+  global.Sys = new SysCls()
+
+  global.m = m
+  global.cl = cl
+  global.s = s
+  global.c = c
+  global.r = r
 }
 
 export function loop(): void {
