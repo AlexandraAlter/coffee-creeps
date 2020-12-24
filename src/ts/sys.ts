@@ -38,10 +38,12 @@ export class SysCls extends Core<SystemMemory> {
   public readonly cortexTypes: typeof Cortex[] = this.typesOf(Cortex)
 
   public readonly workers: AnyWorker[] = []
-  public readonly groups: Map<string, AnyWorker[]> = new Map()
   public readonly zones: Zone[] = []
   public readonly tasklib = new TaskLib()
   public readonly brain = new Brain()
+
+  public readonly groups: Map<string, AnyWorker[]> = new Map()
+  public readonly curZone: Zone | undefined = undefined
 
   public *iterChildren(): Generator<Core<any>> {
     for (let worker of this.workers) {
@@ -88,6 +90,20 @@ export class SysCls extends Core<SystemMemory> {
 
       registerRobotTasks(this.tasklib)
     })
+  }
+
+  // Rooms
+
+  public getCurZone(): Zone | undefined {
+    if (this.curZone) {
+      return this.curZone
+    } else if (_.keys(Game.rooms).length === 1) {
+      return _.values(Game.rooms)[0].core
+    }
+  }
+
+  public getCurRoomName(): string | undefined {
+    return this.getCurZone()?.backing.name
   }
 
   // Groups

@@ -1,5 +1,5 @@
 import { getLogger } from './log'
-import { applyMixins } from './utils'
+import { applyMixins, throwScreepsError } from './utils'
 import { Core } from './core'
 import { Worker, newWorkerMemory } from './worker'
 import _ from 'lodash4'
@@ -28,10 +28,11 @@ interface AnyRobotWorker {
 
 class AnyRobotWorkerMixin {
   move(this: AnyRobotWorker, pos: RoomPosition): ScreepsReturnCode {
-    return this.backing.moveTo(pos)
+    const ret = this.backing.moveTo(pos)
+    throwScreepsError(ret)
+    return ret
   }
 }
-
 
 @Core.withMemory<RobotWorker>(function() { return this.memPath })
 export class RobotWorker extends Worker<Creep, CreepMemory> {

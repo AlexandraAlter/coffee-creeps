@@ -9,24 +9,25 @@ void logger
 
 export function newWorkerMemory(): WorkerMemory {
   return {
+    mode: undefined,
     task: undefined,
     state: undefined,
+    queue: undefined,
     ...newCoreMemory(),
   }
 }
 
 export abstract class Worker<
   T extends Backing<any>,
-  Mem extends WorkerMemory,
+  Mem extends WorkerMemory
 > extends CoreBacked<T, Mem> {
-
   public startTask<A, T extends Task<this, any, A>>(task: T, args: A) {
     Freq.Safety.when(() => {
-      if (!(this.sys.tasklib.get(task.name))) {
+      if (!this.sys.tasklib.get(task.ref)) {
         throw Error('given a task that is not registered')
       }
     })
-    this.memory.task = task.name
+    this.memory.task = task.ref
     this.memory.state = task.newState(args)
   }
 
@@ -43,6 +44,24 @@ export abstract class Worker<
   }
 
   public abstract toRef(): string
+
+  public tick() {
+    if (
+      !this.memory.task &&
+      (_.isUndefined(this.memory.mode) || this.memory.mode === 'auto')
+    ) {
+      // find new task
+    } else if (this.memory.task) {
+      const task = this.sys.tasklib.get(this.memory.task)
+      try {
+        task!.do(this)
+      } catch (e) {
+        delete this.memory.task
+        delete this.memory.state
+        throw e
+      }
+    }
+  }
 }
 
 export type AnyWorker = Worker<any, any>

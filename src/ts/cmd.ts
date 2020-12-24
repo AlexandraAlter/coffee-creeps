@@ -33,7 +33,7 @@ import type * as sysExpansionMod from './sys.expansion'
 
 import type { AnyTask } from './tasks'
 import type { Role } from './role'
-import type { Core, Backing } from './core'
+import type { Core, Backing, AnyCoreBacked } from './core'
 import type { AnyWorker } from './worker'
 import type { RobotWorker, PowerRobotWorker } from './worker.robots'
 import type { SpawnWorker } from './worker.spawns'
@@ -67,11 +67,36 @@ void logger
 // s: (searchers)
 
 // c: (commands)
+//  test
 //  move
 //  spawn
 
 // r: (roles)
 //  upkeep
+
+export type PosSpec = string
+export type PosKind = PosSpec | RoomPosition | _HasRoomPosition
+export type ZoneSpec = string | undefined
+export type ZoneKind = ZoneSpec | Zone
+export type CoreSpec = number | string
+export type CoreKind = CoreSpec | Core[] | Core
+export type WorkerSpec = number | string
+export type WorkerKind = AnyWorker[] | AnyWorker | WorkerSpec
+export type AnySpec = PosSpec | ZoneSpec | CoreSpec | WorkerSpec
+
+const posRegex = new RegExp(/([0-9]+)x([0-9]+)(?:@([NWSE0-9]+))?/)
+
+function arrayify<T>(a: Array<T> | T | undefined): Array<T> {
+  if (a instanceof Array) {
+    return a
+  } else if (typeof a === 'undefined') {
+    return []
+  } else {
+    return [a]
+  }
+}
+
+type Predicate<T> = (val: T) => boolean
 
 export const m = {
   utils: require('./utils') as typeof utilsMod,
@@ -111,8 +136,6 @@ export const m = {
     war: require('./sys.war') as typeof sysWarMod,
     expansion: require('./sys.expansion') as typeof sysExpansionMod,
   },
-
-  cmd: module.exports,
 }
 
 export const cl = {
@@ -134,105 +157,146 @@ export const cl = {
   Brain: m.brain.Brain,
 
   Sys: m.sys.SysCls,
-  Cmd: m.cmd.Cmd,
+}
+
+export const f = {
+  id: (id: string): Predicate<any> => (c) => c.id === id,
+
+  named: (name: string): Predicate<any> => (c) => c.name === name,
+
+  core: (c: any): c is Core => c instanceof cl.Core,
+  backed: (c: any): c is AnyCoreBacked => c instanceof cl.CoreBacked,
+  worker: (c: any): c is AnyWorker => c instanceof cl.Worker,
+  robot: (c: any): c is RobotWorker => c instanceof cl.RobotWorker,
+  probot: (c: any): c is PowerRobotWorker =>
+    c instanceof cl.PowerRobotWorker,
+  spawn: (c: any): c is SpawnWorker => c instanceof cl.SpawnWorker,
 }
 
 export const a = {
   cores: (): Core[] => [...Sys.workers, ...Sys.zones],
 
   workers: (): AnyWorker[] => Sys.workers,
-
-  robots: (): RobotWorker[] => {
-    return _.filter(
-      Sys.workers,
-      (w) => w instanceof cl.RobotWorker
-    ) as RobotWorker[]
-  },
-
-  probots: (): PowerRobotWorker[] => {
-    return _.filter(
-      Sys.workers,
-      (w) => w instanceof cl.PowerRobotWorker
-    ) as PowerRobotWorker[]
-  },
-
-  spawns: (): SpawnWorker[] => {
-    return _.filter(
-      Sys.workers,
-      (w) => w instanceof cl.SpawnWorker
-    ) as SpawnWorker[]
-  },
+  robots: (): RobotWorker[] => _.filter(Sys.workers, f.robot),
+  probots: (): PowerRobotWorker[] => _.filter(Sys.workers, f.probot),
+  spawns: (): SpawnWorker[] => _.filter(Sys.workers, f.spawn),
 
   zones: (): Zone[] => Sys.zones,
 
   tasks: (): AnyTask[] => Sys.tasklib.list(),
 }
 
-export type AnySpec = PosSpec | WorkerSpec
-export type PosSpec = RoomPosition
-export type CoreSpec = number | string
-export type CoreKind = Core[] | Core | number | string
-export type WorkerSpec = number | string
-export type WorkerKind = AnyWorker[] | AnyWorker | number | string
-
 export const s = {
-  id: (id: string): Core | undefined => {
-    return (Game.getObjectById(id as Id<Backing<any>>))?.core
+  id: (id: string): AnyCoreBacked | undefined => {
+    const obj = Game.getObjectById(id as Id<Backing<any>>)
+    if (!obj) {
+      throw Error(`no object with id ${id} found`)
+    }
+    if (!obj.core) {
+      throw Error(`object with id ${id} has no core`)
+    }
+    return obj.core
   },
 
-  name: (name: string): Core[] => {
-    return a.cores().filter((c: any) => c.name === name)
+  named: (name: string): Core[] => {
+    return a.cores().filter(f.named(name))
   },
 
-  cores: (spec: CoreSpec): Core[] => {
-    return _.filter(a.cores(), spec)
+  group: (name: string): AnyWorker[] => {
+    return Sys.getGroup(name) ?? []
+  },
+
+  pos: (spec: PosKind): RoomPosition => {
+    if (spec instanceof RoomPosition) {
+      return spec
+    } else if (typeof spec === 'string') {
+      const match = posRegex.exec(spec)
+      if (!match || match.length < 3) {
+        throw Error('invalid pos string')
+      }
+      const room = match[3] ?? Sys.getCurRoomName()
+      if (!room) {
+        throw Error('no room provided')
+      }
+      return new RoomPosition(parseInt(match[1]), parseInt(match[2]), room)
+    } else if ('pos' in spec) {
+      return spec.pos
+    } else {
+      throw Error(`bad spec: ${spec}`)
+    }
+  },
+
+  cores: (spec: CoreKind): Core[] => {
+    if (spec instanceof Array || spec instanceof cl.Core) {
+      return arrayify(spec)
+    } else if (typeof spec === 'string' || typeof spec === 'object') {
+      return _.filter(a.cores(), spec)
+    } else {
+      throw Error(`bad spec: ${spec}`)
+    }
   },
 
   core: (spec: CoreSpec): Core | undefined => _.first(s.cores(spec)),
 
-  workers: (spec: WorkerSpec): AnyWorker[] => {
-    if (typeof spec === 'string') {
-      return Sys.getGroup(spec) ?? []
+  workers: (spec: WorkerKind): AnyWorker[] => {
+    if (spec instanceof Array || spec instanceof cl.Worker) {
+      return arrayify(spec)
+    } else if (typeof spec === 'string') {
+      return [...s.named(spec).filter(f.worker), ...s.group(spec)]
     } else if (typeof spec === 'number') {
-      return Sys.getGroup(spec.toString()) ?? []
-    } else {
+      return s.group(spec.toString())
+    } else if (typeof spec === 'object') {
       return _.filter(a.workers(), spec)
+    } else {
+      throw Error(`bad spec: ${spec}`)
     }
   },
 
-  worker: (spec: WorkerSpec): AnyWorker | undefined => {
+  worker: (spec: WorkerKind): AnyWorker | undefined => {
     return _.first(s.workers(spec))
   },
 
-  robots: (spec: WorkerSpec): RobotWorker[] => {
-    return _.filter(s.workers(spec), (w) => w instanceof cl.RobotWorker) as RobotWorker[]
+  robots: (spec: WorkerKind): RobotWorker[] => {
+    return _.filter(s.workers(spec), f.robot)
   },
 
-  robot: (spec: WorkerSpec): RobotWorker | undefined => {
+  robot: (spec: WorkerKind): RobotWorker | undefined => {
     return _.first(s.robots(spec))
   },
 
-  probots: (spec: WorkerSpec): PowerRobotWorker[] => {
-    return _.filter(a.probots(), spec)
+  probots: (spec: WorkerKind): PowerRobotWorker[] => {
+    return _.filter(s.workers(spec), f.probot)
   },
 
-  probot: (spec: WorkerSpec): PowerRobotWorker | undefined => {
+  probot: (spec: WorkerKind): PowerRobotWorker | undefined => {
     return _.first(s.probots(spec))
   },
 
-  spawns: (spec: WorkerSpec): SpawnWorker[] => {
-    return _.filter(a.spawns(), spec)
+  spawns: (spec: WorkerKind): SpawnWorker[] => {
+    return _.filter(s.workers(spec), f.spawn)
   },
 
-  spawn: (spec: WorkerSpec): SpawnWorker | undefined => {
+  spawn: (spec: WorkerKind): SpawnWorker | undefined => {
     return _.first(s.spawns(spec))
   },
 
-  zones: (spec: CoreSpec): Zone[] => {
-    return _.filter(a.zones(), spec)
+  zones: (spec: ZoneKind): Zone[] => {
+    if (spec instanceof Array || spec instanceof cl.Zone) {
+      return arrayify(spec)
+    } else if (typeof spec === 'string') {
+      return a.zones().filter(f.named(spec))
+    } else if (typeof spec === 'object') {
+      return _.filter(a.zones(), spec)
+    } else if (typeof spec === 'undefined') {
+      return arrayify(Sys.getCurZone())
+    } else {
+      throw Error(`bad spec: ${spec}`)
+    }
   },
 
-  zone: (spec: CoreSpec): Zone | undefined => _.first(s.zones(spec)),
+  zone: (spec: ZoneKind): Zone | undefined => {
+    return _.first(s.zones(spec))
+  },
 
   tasks: (spec: CoreSpec): AnyTask[] => {
     if (typeof spec === 'string') {
@@ -249,21 +313,21 @@ export const s = {
 export const c = {
   test: () => {},
 
-  spawn: (who: WorkerSpec, what: Role) => {
+  spawn: (who: WorkerKind, what: Role) => {
     const spawners = s.spawns(who)
     for (const spawner of spawners) {
       spawner.spawn(what)
     }
   },
 
-  move: (who: WorkerSpec, where: RoomPosition) => {
+  move: (who: WorkerKind, where: PosKind) => {
     const robots = s.robots(who)
     for (const robot of robots) {
-      robot.move(where)
+      robot.startTask(m.t.robots.moveTask, {target: s.pos(where)})
     }
   },
 }
 
 export const r = {
-  upkeep: m.s.upkeep.UpkeepRole
+  upkeep: m.s.upkeep.UpkeepRole,
 }

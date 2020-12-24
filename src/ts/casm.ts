@@ -1,7 +1,7 @@
 import { getLogger } from './log'
 import type { Constructor } from './utils'
 import { AnyWorker } from './worker'
-import { Task } from './tasks'
+import { Task, TaskRet } from './tasks'
 import _ from 'lodash4'
 
 const logger = getLogger('casm')
@@ -138,6 +138,10 @@ export class CAsm<W extends AnyWorker, A> extends Task<W, State, A> {
 
   public toString(): string {
     return `[${this.constructor.name}]`
+  }
+
+  public do(worker: W): TaskRet {
+    return TaskRet.DONE
   }
 
   public toRef(): string {

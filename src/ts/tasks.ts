@@ -8,6 +8,7 @@ const logger = getLogger('tasks')
 export enum TaskRet {
   OK = 1,
   DONE = 2,
+  ABORT = 3,
 }
 
 export interface State {}
@@ -26,10 +27,12 @@ export abstract class Task<W extends AnyWorker, S extends State, A> {
   }
 
   constructor(
-    readonly name: string,
+    readonly ref: string,
     readonly worker: Constructor<W>,
     readonly newState: (args: A) => S
   ) {}
+
+  abstract do(worker: W): TaskRet
 
   toString(): string {
     return `[${this.constructor.name}]`
@@ -44,12 +47,16 @@ export class TaskFunc<W extends AnyWorker, S extends State, A> extends Task<
   A
 > {
   public constructor(
-    name: string,
+    ref: string,
     worker: Constructor<W>,
     newState: (args: A) => S,
     readonly func: (worker: W, state: S) => TaskRet
   ) {
-    super(name, worker, newState)
+    super(ref, worker, newState)
+  }
+
+  public do(worker: W): TaskRet {
+    return this.func(worker, worker.memory.state)
   }
 }
 
@@ -67,10 +74,10 @@ export class TaskLib {
   }
 
   public register(task: AnyTask) {
-    if (task.name in this.tasks) {
-      throw Error(`duplicate task name ${task.name} in tasklib`)
+    if (task.ref in this.tasks) {
+      throw Error(`duplicate task ref ${task.ref} in tasklib`)
     }
-    this.tasks[task.name] = task
+    this.tasks[task.ref] = task
   }
 
   public list(kind?: typeof Worker) {
@@ -84,7 +91,7 @@ export class TaskLib {
     return ret
   }
 
-  public get(name: string): AnyTask | undefined {
-    return this.tasks[name]
+  public get(ref: string): AnyTask | undefined {
+    return this.tasks[ref]
   }
 }

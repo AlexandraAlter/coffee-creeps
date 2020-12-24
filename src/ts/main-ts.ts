@@ -10,6 +10,8 @@ let logger = getLogger('main')
 void logger
 
 export function setupGlobals(): void {
+  global._ = _
+
   global.Sys = new SysCls()
 
   global.m = m

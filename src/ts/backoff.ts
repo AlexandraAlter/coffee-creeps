@@ -14,7 +14,12 @@ export interface BackoffMem {
   paused: boolean
 }
 
-export class BackoffError extends Error {}
+export class BackoffError extends Error {
+  constructor(msg: string) {
+    super(msg)
+    this.name = 'BackoffError'
+  }
+}
 
 export interface Opts {
   error?: boolean
@@ -66,7 +71,10 @@ export class Backoff<T extends Core> {
     const { error = false, rethrow = error, norecur = true } = opts
 
     if (this.checkedOn === Game.time) {
-      throw new BackoffError('already checked this tick')
+      if (error) {
+        throw new BackoffError('already checked this tick')
+      }
+      return
     }
 
     if (this.paused) {
@@ -76,7 +84,7 @@ export class Backoff<T extends Core> {
     if (this.escapeTime) {
       if (Game.time < this.escapeTime) {
         logger.info(`${this.core} backing off for ${this.remainingTime}`)
-        if (!norecur) {
+        if (norecur) {
           this.checkedOn = Game.time
         }
         if (error) {

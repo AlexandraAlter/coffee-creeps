@@ -26,6 +26,38 @@ export function applyMixins(derivedCtor: any, constructors: any[]) {
   })
 }
 
+export function throwScreepsError(ret: ScreepsReturnCode) {
+  if (ret === ERR_NOT_OWNER) {
+    throw Error('not owner')
+  } else if (ret === ERR_NO_PATH) {
+    throw Error('no path')
+  } else if (ret === ERR_NAME_EXISTS) {
+    throw Error('name exists')
+  } else if (ret === ERR_BUSY) {
+    throw Error('busy')
+  } else if (ret === ERR_NOT_FOUND) {
+    throw Error('not found')
+  } else if (ret === ERR_NOT_ENOUGH_ENERGY) {
+    throw Error('not enough resources/energy/extensions')
+  } else if (ret === ERR_INVALID_TARGET) {
+    throw Error('invalid target')
+  } else if (ret === ERR_FULL) {
+    throw Error('full')
+  } else if (ret === ERR_NOT_IN_RANGE) {
+    throw Error('not in range')
+  } else if (ret === ERR_INVALID_ARGS) {
+    throw Error('invalid args')
+  } else if (ret === ERR_TIRED) {
+    throw Error('tired')
+  } else if (ret === ERR_NO_BODYPART) {
+    throw Error('no bodypart')
+  } else if (ret === ERR_RCL_NOT_ENOUGH) {
+    throw Error('rcl not enough')
+  } else if (ret === ERR_GCL_NOT_ENOUGH) {
+    throw Error('gcl not enough')
+  }
+}
+
 export const errToName: { [key: number]: string } = {
   [OK as number]: 'okay',
   [ERR_NOT_OWNER as number]: 'not owner',

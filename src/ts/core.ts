@@ -230,6 +230,9 @@ export abstract class CoreBacked<
   }
 
   public linkGame(): void {
+    this.backing.core = this
     super.linkGame()
   }
 }
+
+export type AnyCoreBacked = CoreBacked<any, any>

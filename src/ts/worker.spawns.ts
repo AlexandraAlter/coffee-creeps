@@ -4,6 +4,7 @@ import { newWorkerMemory, Worker } from './worker'
 import { RobotWorker } from './worker.robots'
 import { Role } from './role'
 import _ from 'lodash4'
+import {throwScreepsError} from './utils'
 
 const logger = getLogger('worker.spawns')
 
@@ -53,9 +54,22 @@ export class SpawnWorker extends Worker<StructureSpawn, SpawnMemory> {
     const opts = {maxCost: this.backing.store.energy}
     const parts = role.getParts(opts)
     const name = role.getName(opts)
-    const res = this.backing.spawnCreep(parts, name)
+    const ret = this.backing.spawnCreep(parts, name)
     this.sys.workers.push(new RobotWorker(Game.creeps[name]))
-    return res
+    throwScreepsError(ret)
+    return ret
+  }
+
+  public recycle(target: RobotWorker) {
+    const ret = this.backing.recycleCreep(target.backing)
+    throwScreepsError(ret)
+    return ret
+  }
+
+  public renew(target: RobotWorker) {
+    const ret = this.backing.renewCreep(target.backing)
+    throwScreepsError(ret)
+    return ret
   }
 
   public toRef(): string {

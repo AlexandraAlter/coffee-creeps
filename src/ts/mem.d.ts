@@ -26,9 +26,13 @@ declare global {
     failedOn: number | null
   }
 
+  type TaskMode = 'auto' | 'manual' | undefined
+
   interface WorkerMemory extends CoreMemory {
+    mode: TaskMode
     task: string | undefined
     state: object | undefined
+    queue: Array<string> | undefined
   }
 
   interface SystemMemory extends CoreMemory {

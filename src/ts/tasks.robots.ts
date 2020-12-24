@@ -7,24 +7,26 @@ const logger = getLogger('tasks.robots')
 void logger
 
 interface MoveState extends State {
-  target: RoomPosition
-}
-interface MoveArgs {
-  target: _HasRoomPosition
+  target: string
 }
 
-const moveTask = new TaskFunc<RobotWorker, MoveState, MoveArgs>(
+interface MoveArgs {
+  target: RoomPosition
+}
+
+export const moveTask = new TaskFunc<RobotWorker, MoveState, MoveArgs>(
   'move',
   RobotWorker,
 
   (args) => {
     return {
-      target: args.target.pos,
+      target: args.target.toString(),
     }
   },
 
   (worker, state) => {
-    logger.debug(worker.move(state.target).toString())
+    const pos = state.target
+    logger.debug(worker.move(pos).toString())
     return TaskRet.OK
   }
 )
