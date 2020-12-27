@@ -1,7 +1,7 @@
 import type { Level as LogLevel } from './log'
-// import type { Zone } from './zone'
-// import type { RobotWorker, PowerRobotWorker } from './worker.robots'
-// import type { SpawnWorker } from './worker.spawns'
+import type { Zone } from './zone'
+import type { RobotWorker, PowerRobotWorker } from './worker.robots'
+import type { SpawnWorker } from './worker.spawns'
 
 declare global {
   interface Memory {
@@ -50,7 +50,7 @@ declare global {
   }
 
   interface Creep {
-    // core?: RobotWorker
+    core?: RobotWorker
   }
 
   interface PowerCreepMemory extends WorkerMemory {
@@ -58,7 +58,7 @@ declare global {
   }
 
   interface PowerCreep {
-    // core?: PowerRobotWorker
+    core?: PowerRobotWorker
   }
 
   interface FlagMemory extends CoreMemory {}
@@ -66,7 +66,7 @@ declare global {
   interface RoomMemory extends CoreMemory {}
 
   interface Room {
-    // core?: Zone
+    core?: Zone
   }
 
   interface NodeMemory extends CoreMemory {
@@ -77,6 +77,6 @@ declare global {
   interface SpawnMemory extends WorkerMemory {}
 
   interface StructureSpawn {
-    // core?: SpawnWorker
+    core?: SpawnWorker
   }
 }

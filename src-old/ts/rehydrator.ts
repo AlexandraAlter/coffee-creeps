@@ -1,8 +1,8 @@
 import { getLogger } from './log'
+import { Freq } from './freq'
 import _ from 'lodash4'
 
 const logger = getLogger('rehydrator')
-void logger
 
 export interface RehMem {
   cls: string
@@ -17,7 +17,12 @@ export interface RehCls {
   fullName: string
 }
 
-export class Rehydrator<Cls extends RehBaseCls, Mem extends RehMem> {
+export class Rehydrator<
+  Cls extends RehBaseCls,
+  Mem extends RehMem,
+  Args extends ConstructorParameters<Cls> = ConstructorParameters<Cls>
+> {
+
   static toString(): string {
     return `[class ${this.name}]`
   }
@@ -44,7 +49,7 @@ export class Rehydrator<Cls extends RehBaseCls, Mem extends RehMem> {
     this.instances[cls.fullName] = cls
   }
 
-  from(mem: Mem, ...args: ConstructorParameters<Cls>): any | undefined {
+  from(mem: Mem, ...args: Args): any | undefined {
     const cls = this.instances[mem.cls]
     if (cls) {
       return new cls(...args)

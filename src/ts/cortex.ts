@@ -1,18 +1,24 @@
 import { getLogger } from './log'
-import { Core, newCoreMemory } from './core'
+import { Core, CoreMem } from './core'
 import _ from 'lodash4'
 
 const logger = getLogger('cortex')
 
-@Core.withMemory('brain')
-export class Cortex extends Core {
+export class CortexMem extends CoreMem {
+}
+
+export interface CortexConstructor extends Function {
+  new (): Cortex
+}
+
+export class Cortex extends Core<CortexMem, never> {
   protected static logger = logger
 
   readonly cortexes: Cortex[] = [];
 
-  *iterChildren() {}
+  innerReload() {}
+  innerClean() {}
+  innerRefresh() {}
+  innerTick() {}
 
-  initMem() {
-    return newCoreMemory()
-  }
 }

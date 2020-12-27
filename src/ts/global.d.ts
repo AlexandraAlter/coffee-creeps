@@ -1,6 +1,6 @@
 import type _ from 'lodash4'
-import type { SysCls } from './sys'
-import type { m, cl, s, c, r } from './cmd'
+// import type { SysCls } from './sys'
+// import type { m, cl, s, c, r } from './cmd'
 
 declare global {
   namespace NodeJS {
@@ -9,16 +9,16 @@ declare global {
       _: typeof _
 
       // global state
-      Sys: SysCls
+      // Sys: SysCls
 
       // command layer
-      m: typeof m
-      cl: typeof cl
-      s: typeof s
-      c: typeof c
-      r: typeof r
+      // m: typeof m
+      // cl: typeof cl
+      // s: typeof s
+      // c: typeof c
+      // r: typeof r
     }
   }
 
-  export var Sys: SysCls
+  // export var Sys: SysCls
 }
