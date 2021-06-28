@@ -1,17 +1,14 @@
 import { getLogger } from './log'
 import { applyMixins, throwScreepsError } from './utils'
 import { Worker, WorkerMem } from './workers'
-import _ from 'lodash4'
 import { BackingProxy } from './backing'
-import { TaskLib } from './tasks'
+import { Lib } from './libs'
 import { MemProxy } from './memory'
 import { Limiter } from './limiter'
+import { TaskInt } from './tasks'
+import _ from 'lodash4'
 
-const logger = getLogger('worker.robots')
-
-export class CreepMemory extends WorkerMem {}
-
-export class PowerCreepMemory extends WorkerMem {}
+const logger = getLogger('robots')
 
 type AnyCreep = Creep | PowerCreep
 
@@ -27,15 +24,17 @@ class AnyRobotWorkerMixin {
   }
 }
 
+export class CreepMemory extends WorkerMem {}
+
 export class RobotWorker extends Worker<CreepMemory, Creep> {
   public static logger = logger
 
-  constructor(readonly name: string, taskLib: TaskLib) {
+  constructor(readonly name: string, taskLib: Lib<TaskInt>) {
     super(
       new Limiter(name),
-      new MemProxy<PowerCreepMemory>(
+      new MemProxy<CreepMemory>(
         ['robots', name],
-        () => new PowerCreepMemory()
+        () => new CreepMemory()
       ),
       new BackingProxy(
         () => Game.creeps[name],
@@ -50,14 +49,6 @@ export class RobotWorker extends Worker<CreepMemory, Creep> {
     return super.toString().slice(0, -1) + ` ${this.name}]`
   }
 
-  fetchBacking(): Creep | undefined {
-    const sp = (Game.creeps[this.name] as unknown) as Creep
-    if (!sp) {
-      return
-    }
-    return sp
-  }
-
   public toRef(): string {
     return this.backing?.id ?? ''
   }
@@ -70,10 +61,16 @@ export class RobotWorker extends Worker<CreepMemory, Creep> {
 export interface RobotWorker extends AnyRobotWorkerMixin {}
 applyMixins(RobotWorker, [AnyRobotWorkerMixin])
 
+export function isRobot(o: any): o is RobotWorker {
+  return o instanceof RobotWorker
+}
+
+export class PowerCreepMemory extends WorkerMem {}
+
 export class PowerRobotWorker extends Worker<PowerCreepMemory, PowerCreep> {
   public static logger = logger
 
-  constructor(readonly name: string, taskLib: TaskLib) {
+  constructor(readonly name: string, taskLib: Lib<TaskInt>) {
     super(
       new Limiter(name),
       new MemProxy<PowerCreepMemory>(
@@ -104,3 +101,7 @@ export class PowerRobotWorker extends Worker<PowerCreepMemory, PowerCreep> {
 }
 export interface PowerRobotWorker extends AnyRobotWorkerMixin {}
 applyMixins(PowerRobotWorker, [AnyRobotWorkerMixin])
+
+export function isPowerRobot(o: any): o is PowerRobotWorker {
+  return o instanceof PowerRobotWorker
+}

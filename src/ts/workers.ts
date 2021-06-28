@@ -1,13 +1,12 @@
-import { getLogger, Logger } from './log'
+import { Logger } from './log'
 import { Freq } from './freq'
-import { Core, CoreInt, CoreMem } from './core'
+import { Core, CoreInt, CoreMem } from './cores'
 import type { BackingProxy } from './backing'
 import type { MemProxy } from './memory'
 import type { Limiter } from './limiter'
-import { Task, TaskInt, TaskLib, TaskMem } from './tasks'
+import { Task, TaskInt, TaskMem } from './tasks'
+import { Lib } from './libs'
 import _ from 'lodash4'
-
-const logger = getLogger('worker')
 
 export class WorkerMem extends CoreMem implements TaskMem {
   mode: TaskMode
@@ -24,30 +23,22 @@ export class WorkerMem extends CoreMem implements TaskMem {
   }
 }
 
-export interface WorkerConstructor extends Function {
-  name: string
-  logger: Logger
-}
-
 export interface WorkerInt extends CoreInt {
   memory: WorkerMem
-  constructor: WorkerConstructor
-}
-
-export interface Worker<M extends WorkerMem, B> {
-  constructor: WorkerConstructor
 }
 
 export abstract class Worker<M extends WorkerMem, B> extends Core<M, B> {
-  public static logger = logger
+  public readonly taskLib: Lib<TaskInt>
 
   constructor(
+    logger: Logger,
     limiter: Limiter,
     memoryProxy: MemProxy<M>,
     backingProxy: B extends void ? undefined : BackingProxy<B>,
-    readonly taskLib: TaskLib
+    taskLib: Lib<TaskInt>
   ) {
-    super(limiter, memoryProxy, backingProxy)
+    super(logger, limiter, memoryProxy, backingProxy)
+    this.taskLib = taskLib
   }
 
   public startTask<A, T extends Task<this, any, A>>(task: T, args: A) {
@@ -88,5 +79,8 @@ export abstract class Worker<M extends WorkerMem, B> extends Core<M, B> {
       }
     }
   }
+}
 
+export function isWorker(o: any): o is Worker<any, any> {
+  return o instanceof Worker
 }

@@ -1,9 +1,8 @@
 import { getLogger } from './log'
-import { Core, CoreMem } from './core'
-import type { CoreInt } from './core'
+import { Core, CoreMem, CoreInt } from './cores'
 import { Limiter } from './limiter'
 import { MemProxy } from './memory'
-import type { Cortex, CortexConstructor } from './cortex'
+import type { Cortex, CortexCons } from './cortexes'
 import _ from 'lodash4'
 
 const logger = getLogger('brain')
@@ -14,12 +13,14 @@ export class Brain extends Core<BrainMem, never> {
   static logger = logger
 
   private cortexes: Cortex[]
-  protected readonly cortexTypes: CortexConstructor[]
+  protected readonly cortexTypes: CortexCons[]
 
   constructor(
-    cortexTypes: CortexConstructor[]
+    cortexTypes: CortexCons[]
   ) {
+    const logger = getLogger('brain')
     super(
+      logger,
       new Limiter('brain'),
       new MemProxy<BrainMem>('brain', () => new BrainMem())
     )
@@ -43,4 +44,8 @@ export class Brain extends Core<BrainMem, never> {
   innerClean() {}
   innerRefresh() {}
   innerTick() {}
+}
+
+export function isBrain(o: any): o is Brain {
+  return o instanceof Brain
 }

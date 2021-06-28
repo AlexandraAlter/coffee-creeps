@@ -1,5 +1,6 @@
 import { getLogger, Logger } from './log'
-import type { WorkerConstructor, WorkerInt } from './workers'
+import type { WorkerInt } from './workers'
+import { Refable } from './libs'
 import _ from 'lodash4'
 
 const logger = getLogger('tasks')
@@ -17,9 +18,9 @@ export interface TaskMem {
   queue: Array<string> | undefined
 }
 
-export interface TaskInt {
+export interface TaskInt extends Refable {
   ref: string
-  worker: WorkerConstructor
+  kind: WorkerConstructor
   start: (worker: any, args: any) => void
   step: (worker: any) => TaskRet
   stop: (worker: any) => void
@@ -45,7 +46,7 @@ export abstract class Task<W extends WorkerInt, S extends object, A>
 
   constructor(
     readonly ref: string,
-    readonly worker: WorkerConstructor,
+    readonly kind: WorkerConstructor,
     readonly newState: (args: A) => S
   ) {}
 
@@ -84,47 +85,47 @@ export class TaskFunc<
   }
 }
 
-export class TaskLib {
-  public static toString(): string {
-    return `[class ${this.name}]`
-  }
+// export class TaskLib {
+//   public static toString(): string {
+//     return `[class ${this.name}]`
+//   }
 
-  protected static logger = logger
+//   protected static logger = logger
 
-  private tasks: { [index: string]: TaskInt | undefined } = {}
+//   private tasks: { [index: string]: TaskInt | undefined } = {}
 
-  public toString(): string {
-    return `[${this.constructor.name}]`
-  }
+//   public toString(): string {
+//     return `[${this.constructor.name}]`
+//   }
 
-  public register(task: TaskInt) {
-    if (task.ref in this.tasks) {
-      throw Error(`duplicate task ref ${task.ref} in tasklib`)
-    }
-    this.tasks[task.ref] = task
-  }
+//   public register(task: TaskInt) {
+//     if (task.ref in this.tasks) {
+//       throw Error(`duplicate task ref ${task.ref} in tasklib`)
+//     }
+//     this.tasks[task.ref] = task
+//   }
 
-  public list(kind?: WorkerConstructor) {
-    const ret = []
-    for (const n in this.tasks) {
-      const task = this.tasks[n]
-      if (task && (!kind || task.worker instanceof kind)) {
-        ret.push(task)
-      }
-    }
-    return ret
-  }
+//   public list(kind?: WorkerConstructor) {
+//     const ret = []
+//     for (const n in this.tasks) {
+//       const task = this.tasks[n]
+//       if (task && (!kind || task.worker instanceof kind)) {
+//         ret.push(task)
+//       }
+//     }
+//     return ret
+//   }
 
-  public get(ref: string, kind?: WorkerConstructor): TaskInt | undefined {
-    const task = this.tasks[ref]
-    if (!task) {
-      throw Error(`no task found for ${ref}`)
-    }
-    if (kind && !(task.worker instanceof kind)) {
-      throw Error(
-        `found task for ${ref} is for ${task.worker}, not ${kind}`
-      )
-    }
-    return task
-  }
-}
+//   public get(ref: string, kind?: WorkerConstructor): TaskInt | undefined {
+//     const task = this.tasks[ref]
+//     if (!task) {
+//       throw Error(`no task found for ${ref}`)
+//     }
+//     if (kind && !(task.worker instanceof kind)) {
+//       throw Error(
+//         `found task for ${ref} is for ${task.worker}, not ${kind}`
+//       )
+//     }
+//     return task
+//   }
+// }
